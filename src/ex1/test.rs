@@ -1,18 +1,19 @@
-use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
-use regex::bytes::RegexBuilder;
+use std::time::Duration;
+use crate::util::panic_after;
 use crate::ex1::find_k;
 use crate::ex1::graph::Graph;
-
 
 macro_rules! gen_test {
     ($path:expr, $name:ident, $k:expr) => {
         #[test]
         fn $name() {
-            let path_string = String::from($path);
-            let path = Path::new(&path_string);
-            let graph = Graph::parse_dimacs(path);
-            assert_eq!($k, find_k(graph));
+            panic_after(Duration::from_secs(10), || {
+                let path_string = String::from($path);
+                let path = Path::new(&path_string);
+                let graph = Graph::parse_dimacs(path);
+                assert!(matches!(find_k(graph, $k), Ok($k)));
+            });
         }
     };
 }

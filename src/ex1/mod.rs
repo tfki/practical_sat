@@ -1,14 +1,20 @@
 pub mod graph;
+
+#[cfg(test)]
 mod test;
 
 use crate::cnf::literal::{Literal, Variable};
 use crate::ex1::graph::Graph;
 use crate::solver::{Solver, SolveResult};
 
-pub fn find_k(graph: Graph) -> u32 {
+pub fn find_k(graph: Graph, limit: u32) -> Result<u32, ()> {
     let mut num_colors = 0;
 
     loop {
+        if num_colors > limit {
+            return Err(())
+        }
+        
         num_colors += 1;
 
         let mut solver = Solver::new();
@@ -31,7 +37,7 @@ pub fn find_k(graph: Graph) -> u32 {
         }
 
         if matches!(solver.solve(), SolveResult::Sat) {
-            return num_colors;
+            return Ok(num_colors);
         }
     }
 }
