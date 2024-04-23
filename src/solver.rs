@@ -1,19 +1,25 @@
-use std::ffi::{c_int, c_void};
+use std::ffi::c_void;
 use crate::cnf::literal::{Literal, Variable};
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum SolveResult {
     Sat,
     Unsat,
     Interrupted,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum VariableValue {
     True,
-    False, DontCare
+    False,
+    DontCare,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum SolverState {
-    Sat, Unsat, Input
+    Sat,
+    Unsat,
+    Input,
 }
 
 pub struct Solver {
@@ -33,7 +39,7 @@ impl Solver {
             state: SolverState::Input,
             solver_ptr: unsafe {
                 ipasir_sys::ipasir_init()
-            }
+            },
         }
     }
 
@@ -44,18 +50,44 @@ impl Solver {
         self.state = SolverState::Input;
     }
 
+    pub fn add_clause(&mut self, clause: &[Literal]) {
+        for lit in clause {
+            self.add_literal(*lit);
+        }
+        self.add_literal(Literal { var: Variable { id: 0 }, negated: false });
+    }
+
+    pub fn assume_literal(&mut self, lit: Literal) {
+        unsafe { ipasir_sys::ipasir_assume(self.solver_ptr, lit.into()) }
+    }
+
+    pub fn assume_clause(&mut self, clause: &[Literal]) {
+        for lit in clause {
+            self.assume_literal(*lit);
+        }
+    }
+
     pub fn solve(&mut self) -> SolveResult {
         match unsafe { ipasir_sys::ipasir_solve(self.solver_ptr) } {
-            20 => SolveResult::Sat,
-            10 => SolveResult::Unsat,
-            0 => SolveResult::Interrupted,
+            0 => {
+                self.state = SolverState::Input;
+                SolveResult::Interrupted
+            }
+            10 => {
+                self.state = SolverState::Sat;
+                SolveResult::Sat
+            }
+            20 => {
+                self.state = SolverState::Unsat;
+                SolveResult::Unsat
+            }
             _ => unreachable!(),
         }
     }
 
     pub fn val(&mut self, var: Variable) -> VariableValue {
         assert!(matches!(self.state, SolverState::Sat));
-        
+
         let val = unsafe { ipasir_sys::ipasir_val(self.solver_ptr, var.id as i32) };
 
         if val == var.id as i32 {
@@ -65,5 +97,17 @@ impl Solver {
         } else {
             VariableValue::DontCare
         }
+    }
+
+    pub fn at_most_one_pairwise(&mut self, lits: &[Literal]) {
+        for i in 0..lits.len() {
+            for j in (i + 1)..lits.len() {
+                self.add_clause(&[-lits[i], -lits[j]]);
+            }
+        }
+    }
+
+    pub fn at_most_k_sequential_counter(&mut self, _k: u32, _lits: &[Literal]) {
+        todo!()
     }
 }

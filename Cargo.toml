@@ -13,10 +13,11 @@ lto = true
 
 [dependencies]
 ipasir-sys = "0.3.0"
+regex = "1.10.4"
 
 [dev-dependencies]
 criterion = "0.5.1"
 
 [[bench]]
-name = "dimacs_parse"
+name = "main"
 harness = false
