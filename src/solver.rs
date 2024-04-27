@@ -1,4 +1,6 @@
 use std::ffi::c_void;
+use std::os::raw::c_int;
+
 use crate::cnf::literal::{Literal, Variable};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -22,9 +24,22 @@ enum SolverState {
     Input,
 }
 
+extern "C" fn terminate_fn_wrapper(state: *mut c_void) -> c_int
+{
+    let f: &mut Box<dyn FnMut() -> bool> = unsafe {
+        &mut *(state as *mut Box<dyn FnMut() -> bool>)
+    };
+    match f() {
+        true => 1,
+        false => 0,
+    }
+}
+
+
 pub struct Solver {
     solver_ptr: *mut c_void,
     state: SolverState,
+    terminate_fn: Option<Box<dyn FnMut() -> bool>>,
 }
 
 impl Drop for Solver {
@@ -40,6 +55,7 @@ impl Solver {
             solver_ptr: unsafe {
                 ipasir_sys::ipasir_init()
             },
+            terminate_fn: None,
         }
     }
 
@@ -96,6 +112,20 @@ impl Solver {
             VariableValue::False
         } else {
             VariableValue::DontCare
+        }
+    }
+
+    pub fn set_terminate<F>(&mut self, cb: F)
+        where
+            F: 'static + FnMut() -> bool,
+    {
+        self.terminate_fn = Some(Box::new(cb));
+        unsafe {
+            ipasir_sys::ipasir_set_terminate(
+                self.solver_ptr,
+                self.terminate_fn.as_mut().unwrap() as *mut _ as *mut std::os::raw::c_void,
+                Some(terminate_fn_wrapper),
+            )
         }
     }
 
