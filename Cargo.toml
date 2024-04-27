@@ -8,11 +8,8 @@ edition = "2021"
 [profile.release]
 lto = true
 
-[profile.bench]
-lto = true
-
 [dependencies]
-ipasir-sys = { git = "https://github.com/tfki/ipasir-sys.git" }
+ipasir-sys = "0.3.0"
 regex = "1.10.4"
 
 [dev-dependencies]

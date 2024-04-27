@@ -1,22 +1,19 @@
-use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
-pub fn panic_after<T, F>(d: Duration, f: F) -> T
-    where
-        T: Send + 'static,
-        F: FnOnce() -> T,
-        F: Send + 'static,
-{
-    let (done_tx, done_rx) = mpsc::channel();
-    let handle = thread::spawn(move || {
-        let val = f();
-        done_tx.send(()).expect("Unable to send completion signal");
-        val
-    });
+#[derive(Debug, Copy, Clone)]
+pub struct Timer {
+    start: SystemTime,
+    duration: Duration,
+}
 
-    match done_rx.recv_timeout(d) {
-        Ok(_) => handle.join().expect("Thread panicked"),
-        Err(_) => panic!("Thread took too long"),
+impl Timer {
+    pub fn new(duration: Duration) -> Self {
+        Timer { start: SystemTime::now(), duration }
+    }
+
+    pub fn new_infinite() -> Self { Timer { start: SystemTime::now(), duration: Duration::MAX } }
+
+    pub fn has_finished(&self) -> bool {
+        SystemTime::now().duration_since(self.start).unwrap() > self.duration
     }
 }

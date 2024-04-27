@@ -1,6 +1,6 @@
 use std::path::Path;
 use criterion::Criterion;
-use practical_sat::ex1::find_k;
+use practical_sat::ex1::coloring::bitvec_incremental;
 use practical_sat::ex1::graph::Graph;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
@@ -26,7 +26,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function(path.file_name().unwrap().to_str().unwrap(), |b| b.iter(|| {
             let graph = Graph::parse_dimacs(path);
 
-            find_k(graph, u32::MAX).unwrap();
+            bitvec_incremental::find_k(graph);
         }));
     }
     group.finish();
