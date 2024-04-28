@@ -1,7 +1,8 @@
 use std::path::Path;
 use criterion::Criterion;
 use practical_sat::ex1::coloring::bitvec_incremental;
-use practical_sat::ex1::graph::Graph;
+use practical_sat::ex1::coloring::graph::Graph;
+use practical_sat::util::Timer;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let paths = vec![
@@ -23,10 +24,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     for path in paths {
         let path = Path::new(path);
-        group.bench_function(path.file_name().unwrap().to_str().unwrap(), |b| b.iter(|| {
+        group.bench_function(format!("coloring-{}", path.file_name().unwrap().to_str().unwrap()), |b| b.iter(|| {
             let graph = Graph::parse_dimacs(path);
 
-            bitvec_incremental::find_k(graph);
+            bitvec_incremental::find_k(graph, Timer::new_infinite());
         }));
     }
     group.finish();

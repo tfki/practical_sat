@@ -73,14 +73,8 @@ impl Solver {
         self.add_literal(Literal { var: Variable { id: 0 }, negated: false });
     }
 
-    pub fn assume_literal(&mut self, lit: Literal) {
+    pub fn assume(&mut self, lit: Literal) {
         unsafe { ipasir_sys::ipasir_assume(self.solver_ptr, lit.into()) }
-    }
-
-    pub fn assume_clause(&mut self, clause: &[Literal]) {
-        for lit in clause {
-            self.assume_literal(*lit);
-        }
     }
 
     pub fn solve(&mut self) -> SolveResult {
@@ -127,6 +121,10 @@ impl Solver {
                 Some(terminate_fn_wrapper),
             )
         }
+    }
+
+    pub fn at_least_one(&mut self, lits: &[Literal]) {
+        self.add_clause(lits);
     }
 
     pub fn at_most_one_pairwise(&mut self, lits: &[Literal]) {

@@ -5,7 +5,7 @@ macro_rules! gen_test {
         fn $name() {
             use std::path::Path;
             use crate::ex1::coloring::FindKResult;
-            use crate::ex1::graph::Graph;
+            use crate::ex1::coloring::graph::Graph;
             use std::time::Duration;
             use crate::util::Timer;
 

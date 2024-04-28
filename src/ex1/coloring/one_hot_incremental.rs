@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::cnf::literal::{Literal, Variable};
 use crate::ex1::coloring::FindKResult;
-use crate::ex1::graph::Graph;
+use crate::ex1::coloring::graph::Graph;
 use crate::solver::{Solver, SolveResult};
 use crate::util::Timer;
 
@@ -16,7 +16,7 @@ pub fn find_k(graph: Graph, timer: Timer) -> FindKResult {
     solver.set_terminate(move || timer.has_finished());
 
     let mut deactivate_color_disjunctions = Literal::new_pos(allocator.next().unwrap());
-    solver.assume_literal(-deactivate_color_disjunctions);
+    solver.assume(-deactivate_color_disjunctions);
 
     for vertex in 1..=graph.num_vertices {
         let v_is_color0 = *var_map.entry(format!("v{}_is_c{}", vertex, 0)).or_insert(allocator.next().unwrap());
@@ -48,7 +48,7 @@ pub fn find_k(graph: Graph, timer: Timer) -> FindKResult {
         // deactivate all "at least one color" clauses from last iteration
         solver.add_clause(&[deactivate_color_disjunctions]);
         deactivate_color_disjunctions = Literal::new_pos(allocator.next().unwrap());
-        solver.assume_literal(-deactivate_color_disjunctions);
+        solver.assume(-deactivate_color_disjunctions);
 
         for edge in &graph.edges {
             let a = *var_map.entry(format!("v{}_is_c{}", edge.0, num_colors - 1)).or_insert(allocator.next().unwrap());

@@ -1,7 +1,7 @@
 use std::env;
 
 use practical_sat::ex1::coloring::{FindKResult, hybrid};
-use practical_sat::ex1::graph::Graph;
+use practical_sat::ex1::coloring::graph::Graph;
 use practical_sat::util::Timer;
 
 fn main() {
