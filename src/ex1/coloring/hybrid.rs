@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::cnf::literal::{Literal, Variable};
+use crate::cnf::literal::Lit;
 use crate::ex1::coloring::FindKResult;
 use crate::ex1::coloring::graph::Graph;
 use crate::solver::{Solver, SolveResult};
@@ -38,9 +38,9 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
 
                 let diff_id1 = *var_map.entry(format!("v{}_v{}_b{}_diff1", a, b, bit)).or_insert(allocator.next().unwrap());
 
-                solver.add_clause(&[-Variable::new(diff_id1), Variable::new(a_bit_id).into(), Variable::new(b_bit_id).into()]);
-                solver.add_clause(&[-Variable::new(diff_id1), -Variable::new(a_bit_id), -Variable::new(b_bit_id)]);
-                diff_vars.push(Literal::new(Variable::new(diff_id1), false));
+                solver.add_clause(&[-Lit::new(diff_id1), Lit::new(a_bit_id).into(), Lit::new(b_bit_id).into()]);
+                solver.add_clause(&[-Lit::new(diff_id1), -Lit::new(a_bit_id), -Lit::new(b_bit_id)]);
+                diff_vars.push(Lit::new(diff_id1));
             }
             solver.add_clause(&diff_vars);
         }
@@ -66,23 +66,23 @@ pub fn go_back_until_failure_one_hot(graph: &Graph, timer: Timer, min_bits: u32)
     for vertex in 1..=graph.num_vertices {
         for color in 0..2_u32.pow(min_bits) {
             let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(allocator.next().unwrap());
-            solver.add_literal(Literal::new_pos(v_is_color));
+            solver.add_literal(Lit::new(v_is_color));
         }
-        solver.add_literal(Literal::clause_end());
+        solver.add_literal(Lit::clause_end());
     }
 
     for edge in &graph.edges {
         for color in 0..2_u32.pow(min_bits) {
             let a_is_color = *var_map.entry(format!("v{}_c{}", edge.0, color)).or_insert(allocator.next().unwrap());
             let b_is_color = *var_map.entry(format!("v{}_c{}", edge.1, color)).or_insert(allocator.next().unwrap());
-            solver.add_clause(&[Literal::new_neg(a_is_color), Literal::new_neg(b_is_color)]);
+            solver.add_clause(&[-Lit::new(a_is_color), -Lit::new(b_is_color)]);
         }
     }
 
     for color in 0..2_u32.pow(min_bits) {
         for vertex in 1..=graph.num_vertices {
             let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(allocator.next().unwrap());
-            solver.add_clause(&[Literal::new_neg(v_is_color)]);
+            solver.add_clause(&[-Lit::new(v_is_color)]);
         }
 
         if timer.has_finished() {

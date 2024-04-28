@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ffi::c_uint;
 use std::ops::RangeFrom;
 
-use crate::cnf::literal::{Literal, Variable};
+use crate::cnf::literal::Lit;
 use crate::ex1::coloring::FindKResult;
 use crate::ex1::coloring::graph::Graph;
 use crate::solver::{Solver, SolveResult};
@@ -40,9 +40,9 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
 
                 let diff_id1 = *var_map.entry(format!("v{}_v{}_b{}_diff1", a, b, bit)).or_insert(allocator.next().unwrap());
 
-                solver.add_clause(&[-Variable::new(diff_id1), Variable::new(a_bit_id).into(), Variable::new(b_bit_id).into()]);
-                solver.add_clause(&[-Variable::new(diff_id1), -Variable::new(a_bit_id), -Variable::new(b_bit_id)]);
-                diff_vars.push(Literal::new(Variable::new(diff_id1), false));
+                solver.add_clause(&[-Lit::new(diff_id1), Lit::new(a_bit_id).into(), Lit::new(b_bit_id).into()]);
+                solver.add_clause(&[-Lit::new(diff_id1), -Lit::new(a_bit_id), -Lit::new(b_bit_id)]);
+                diff_vars.push(Lit::new(diff_id1));
             }
             solver.add_clause(&diff_vars);
         }
@@ -69,10 +69,14 @@ pub fn go_back_until_failure(graph: &Graph, timer: Timer, tup: (HashMap<String, 
         for v in 1..=graph.num_vertices {
             for b in 0..min_bits {
                 let id = *var_map.entry(format!("v{}_b{}", v, b)).or_insert(allocator.next().unwrap());
-
-                solver.add_literal(Literal::new(Variable::new(id), (x & (1 << b) as u32) == 0));
+                
+                if  (x & (1 << b) as u32) == 0 {
+                    solver.add_literal(-Lit::new(id));
+                } else {
+                    solver.add_literal(Lit::new(id));
+                }
             }
-            solver.add_literal(Literal::clause_end());
+            solver.add_literal(Lit::clause_end());
         }
 
         let result = solver.solve();

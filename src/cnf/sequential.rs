@@ -3,15 +3,15 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use crate::cnf::Cnf;
-use crate::cnf::literal::Literal;
+use crate::cnf::literal::Lit;
 
 enum Item {
     ClauseSeparator,
-    Literal(Literal),
+    Literal(Lit),
 }
 
-impl From<Literal> for Item {
-    fn from(value: Literal) -> Self {
+impl From<Lit> for Item {
+    fn from(value: Lit) -> Self {
         Item::Literal(value)
     }
 }
@@ -52,7 +52,7 @@ impl Cnf for SequentialCnf {
                     .split_ascii_whitespace()
                     .map(str::parse::<c_int>)
                     .map(Result::unwrap)
-                    .map(Literal::from)
+                    .map(Lit::from)
                     .map(Item::from)
                     .for_each(|item| result.items.push(item));
             

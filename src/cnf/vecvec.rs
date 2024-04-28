@@ -3,10 +3,10 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use crate::cnf::Cnf;
-use crate::cnf::literal::Literal;
+use crate::cnf::literal::Lit;
 
 pub struct VecVecCnf {
-    clauses: Vec<Vec<Literal>>,
+    clauses: Vec<Vec<Lit>>,
 }
 
 impl Cnf for VecVecCnf {
@@ -40,7 +40,7 @@ impl Cnf for VecVecCnf {
                     .split_ascii_whitespace()
                     .map(str::parse::<c_int>)
                     .map(Result::unwrap)
-                    .map(Literal::from)
+                    .map(Lit::from)
                     .collect();
             result.clauses.push(clause);
         }

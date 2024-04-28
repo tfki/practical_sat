@@ -2,7 +2,7 @@ use std::ffi::{c_uint, c_void};
 use std::ops::RangeFrom;
 use std::os::raw::c_int;
 
-use crate::cnf::literal::{Literal, Variable};
+use crate::cnf::literal::Lit;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum SolveResult {
@@ -12,7 +12,7 @@ pub enum SolveResult {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum VariableValue {
+pub enum LitValue {
     True,
     False,
     DontCare,
@@ -60,21 +60,21 @@ impl Solver {
         }
     }
 
-    pub fn add_literal(&mut self, lit: Literal) {
+    pub fn add_literal(&mut self, lit: Lit) {
         unsafe {
             ipasir_sys::ipasir_add(self.solver_ptr, lit.into())
         }
         self.state = SolverState::Input;
     }
 
-    pub fn add_clause(&mut self, clause: &[Literal]) {
+    pub fn add_clause(&mut self, clause: &[Lit]) {
         for lit in clause {
             self.add_literal(*lit);
         }
-        self.add_literal(Literal { var: Variable { id: 0 }, negated: false });
+        self.add_literal(Lit { id: 0, negated: false });
     }
 
-    pub fn assume(&mut self, lit: Literal) {
+    pub fn assume(&mut self, lit: Lit) {
         unsafe { ipasir_sys::ipasir_assume(self.solver_ptr, lit.into()) }
     }
 
@@ -96,17 +96,19 @@ impl Solver {
         }
     }
 
-    pub fn val(&mut self, var: Variable) -> VariableValue {
+    pub fn val(&mut self, lit: Lit) -> LitValue {
         assert!(matches!(self.state, SolverState::Sat));
 
-        let val = unsafe { ipasir_sys::ipasir_val(self.solver_ptr, var.id as i32) };
-
-        if val == var.id as i32 {
-            VariableValue::True
-        } else if -val == var.id as i32 {
-            VariableValue::False
+        let val = unsafe {
+            ipasir_sys::ipasir_val(self.solver_ptr, lit.into())
+        };
+        
+        if val == 0 {
+            LitValue::DontCare
+        } else if val < 0 {
+            LitValue::False
         } else {
-            VariableValue::DontCare
+            LitValue::True
         }
     }
 
@@ -124,11 +126,11 @@ impl Solver {
         }
     }
 
-    pub fn at_least_one(&mut self, lits: &[Literal]) {
+    pub fn at_least_one(&mut self, lits: &[Lit]) {
         self.add_clause(lits);
     }
 
-    pub fn at_most_one_pairwise(&mut self, lits: &[Literal]) {
+    pub fn at_most_one_pairwise(&mut self, lits: &[Lit]) {
         for i in 0..lits.len() {
             for j in (i + 1)..lits.len() {
                 self.add_clause(&[-lits[i], -lits[j]]);
@@ -136,7 +138,7 @@ impl Solver {
         }
     }
 
-    pub fn exactly_k_seq_counter(&mut self, lits: &[Literal], k: u32, allocator: &mut RangeFrom<c_uint>) {
+    pub fn exactly_k_seq_counter(&mut self, lits: &[Lit], k: u32, allocator: &mut RangeFrom<c_uint>) {
         if k > lits.len() as u32 {
             self.add_clause(&[]);
         }
@@ -153,7 +155,7 @@ impl Solver {
         }
     }
 
-    pub fn at_least_k_seq_counter(&mut self, lits: &[Literal], k: u32, allocator: &mut RangeFrom<c_uint>) {
+    pub fn at_least_k_seq_counter(&mut self, lits: &[Lit], k: u32, allocator: &mut RangeFrom<c_uint>) {
         if k > lits.len() as u32 {
             self.add_clause(&[]);
         }
@@ -167,25 +169,25 @@ impl Solver {
         }
     }
 
-    pub fn at_most_k_seq_counter(&mut self, lits: &[Literal], k: u32, allocator: &mut RangeFrom<c_uint>) {
+    pub fn at_most_k_seq_counter(&mut self, lits: &[Lit], k: u32, allocator: &mut RangeFrom<c_uint>) {
         if k > lits.len() as u32 {
             self.add_clause(&[]);
         }
 
         let last_layer_outputs = self.seq_counter(lits, allocator);
-        
+
         if let Some(x) = last_layer_outputs.get(k as usize) {
             self.add_clause(&[-*x]);
         }
     }
 
-    fn seq_counter(&mut self, lits: &[Literal], allocator: &mut RangeFrom<c_uint>) -> Vec<Literal> {
+    fn seq_counter(&mut self, lits: &[Lit], allocator: &mut RangeFrom<c_uint>) -> Vec<Lit> {
         let mut prev_layer_outputs = vec![lits[0]];
 
         for lit in &lits[1..] {
             let mut layer_outputs = vec![];
             for _ in 0..=prev_layer_outputs.len() {
-                layer_outputs.push(Literal::new_pos(allocator.next().unwrap()));
+                layer_outputs.push(Lit::new(allocator.next().unwrap()));
             };
 
             self.add_clause(&[layer_outputs[0], -*lit]);
@@ -211,9 +213,5 @@ impl Solver {
         }
 
         prev_layer_outputs
-    }
-
-    pub fn at_most_k_sequential_counter(&mut self, _k: u32, _lits: &[Literal]) {
-        todo!()
     }
 }

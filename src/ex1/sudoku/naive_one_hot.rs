@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-use crate::cnf::literal::{Literal, Variable};
+use crate::cnf::literal::Lit;
 use crate::ex1::sudoku::sudoku::{Cell, Sudoku};
-use crate::solver::{Solver, SolveResult, VariableValue};
+use crate::SatProblemResult;
+use crate::solver::{LitValue, Solver, SolveResult};
+use crate::util::Timer;
 
-pub fn find_solution(sudoku: &Sudoku) -> Option<Sudoku> {
+pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> {
     let mut solver = Solver::new();
     let mut var_map = HashMap::new();
     let mut allocator = 1..;
@@ -18,14 +20,14 @@ pub fn find_solution(sudoku: &Sudoku) -> Option<Sudoku> {
     for (x, y) in cells.clone() {
         if let Cell::Occupied(num) = sudoku.cell(x, y) {
             let id = *var_map.entry(format!("{x}/{y} = {num}")).or_insert(allocator.next().unwrap());
-            solver.add_clause(&[Literal::new_pos(id)]);
+            solver.add_clause(&[Lit::new(id)]);
         }
 
         buffer.clear();
 
         for val in vals.clone() {
             let id = *var_map.entry(format!("{x}/{y} = {val}")).or_insert(allocator.next().unwrap());
-            buffer.push(Literal::new_pos(id));
+            buffer.push(Lit::new(id));
         }
 
         solver.at_least_one(&buffer);
@@ -36,8 +38,8 @@ pub fn find_solution(sudoku: &Sudoku) -> Option<Sudoku> {
         for val in vals.clone() {
             let lits = sudoku.col(col).enumerate().map(|(y, _)| {
                 let id = *var_map.entry(format!("{col}/{y} = {val}")).or_insert(allocator.next().unwrap());
-                Literal::new_pos(id)
-            }).collect::<Vec<Literal>>();
+                Lit::new(id)
+            }).collect::<Vec<Lit>>();
 
             solver.at_least_one(&lits);
         }
@@ -45,10 +47,10 @@ pub fn find_solution(sudoku: &Sudoku) -> Option<Sudoku> {
 
     for row in one_axis_coords.clone() {
         for val in vals.clone() {
-            let lits = sudoku.row(row).enumerate().map(|(x, cell)| {
+            let lits = sudoku.row(row).enumerate().map(|(x, _)| {
                 let id = *var_map.entry(format!("{x}/{row} = {val}")).or_insert(allocator.next().unwrap());
-                Literal::new_pos(id)
-            }).collect::<Vec<Literal>>();
+                Lit::new(id)
+            }).collect::<Vec<Lit>>();
 
             solver.at_least_one(&lits);
         }
@@ -64,7 +66,7 @@ pub fn find_solution(sudoku: &Sudoku) -> Option<Sudoku> {
                 for x in x_offset..(x_offset + sudoku.n) {
                     for y in y_offset..(y_offset + sudoku.n) {
                         let id = *var_map.entry(format!("{x}/{y} = {val}")).or_insert(allocator.next().unwrap());
-                        buffer.push(Literal::new_pos(id));
+                        buffer.push(Lit::new(id));
                     }
                 }
                 solver.at_least_one(&buffer);
@@ -75,25 +77,25 @@ pub fn find_solution(sudoku: &Sudoku) -> Option<Sudoku> {
 
     let mut sudoku_solution = sudoku.clone();
 
+    solver.set_terminate(move || timer.has_finished());
     match solver.solve() {
         SolveResult::Sat => {
             for (x, y) in cells.clone() {
                 for val in vals.clone() {
                     let id = *var_map.entry(format!("{x}/{y} = {val}")).or_insert(allocator.next().unwrap());
 
-                    if let VariableValue::True = solver.val(Variable::new(id)) {
+                    if let LitValue::True = solver.val(Lit::new(id)) {
                         *sudoku_solution.cell_mut(x, y) = Cell::Occupied(val);
                         break;
                     }
                 }
             }
 
-            return Some(sudoku_solution);
+            SatProblemResult::Sat(sudoku_solution)
         }
-        x => println!("{x:?}"),
+        SolveResult::Interrupted => SatProblemResult::Timeout,
+        SolveResult::Unsat => SatProblemResult::Unsat,
     }
-
-    None
 }
 
 pub fn gen_dimacs(sudoku: &Sudoku) -> String {
@@ -110,14 +112,14 @@ pub fn gen_dimacs(sudoku: &Sudoku) -> String {
     for (x, y) in cells.clone() {
         if let Cell::Occupied(num) = sudoku.cell(x, y) {
             let id = *var_map.entry(format!("{x}/{y} = {num}")).or_insert(allocator.next().unwrap());
-            solver.add_clause(&[Literal::new_pos(id)]);
+            solver.add_clause(&[Lit::new(id)]);
         }
 
         buffer.clear();
 
         for val in vals.clone() {
             let id = *var_map.entry(format!("{x}/{y} = {val}")).or_insert(allocator.next().unwrap());
-            buffer.push(Literal::new_pos(id));
+            buffer.push(Lit::new(id));
         }
 
         solver.at_least_one(&buffer);
@@ -128,8 +130,8 @@ pub fn gen_dimacs(sudoku: &Sudoku) -> String {
         for val in vals.clone() {
             let lits = sudoku.col(col).enumerate().map(|(y, _)| {
                 let id = *var_map.entry(format!("{col}/{y} = {val}")).or_insert(allocator.next().unwrap());
-                Literal::new_pos(id)
-            }).collect::<Vec<Literal>>();
+                Lit::new(id)
+            }).collect::<Vec<Lit>>();
 
             solver.at_least_one(&lits);
         }
@@ -139,8 +141,8 @@ pub fn gen_dimacs(sudoku: &Sudoku) -> String {
         for val in vals.clone() {
             let lits = sudoku.row(row).enumerate().map(|(x, _)| {
                 let id = *var_map.entry(format!("{x}/{row} = {val}")).or_insert(allocator.next().unwrap());
-                Literal::new_pos(id)
-            }).collect::<Vec<Literal>>();
+                Lit::new(id)
+            }).collect::<Vec<Lit>>();
 
             solver.at_least_one(&lits);
         }
@@ -156,7 +158,7 @@ pub fn gen_dimacs(sudoku: &Sudoku) -> String {
                 for x in x_offset..(x_offset + sudoku.n) {
                     for y in y_offset..(y_offset + sudoku.n) {
                         let id = *var_map.entry(format!("{x}/{y} = {val}")).or_insert(allocator.next().unwrap());
-                        buffer.push(Literal::new_pos(id));
+                        buffer.push(Lit::new(id));
                     }
                 }
                 solver.at_least_one(&buffer);
