@@ -11,6 +11,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         "assets/ex1/sudoku/puzzle03b.sudoku",
         "assets/ex1/sudoku/puzzle04a.sudoku",
         "assets/ex1/sudoku/puzzle04b.sudoku",
+        "assets/ex1/sudoku/puzzle06a.sudoku",
+        "assets/ex1/sudoku/puzzle07a.sudoku",
     ];
 
     let mut group = c.benchmark_group("sudoku");

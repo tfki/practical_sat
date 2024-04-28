@@ -1,4 +1,5 @@
-use std::ffi::c_void;
+use std::ffi::{c_uint, c_void};
+use std::ops::RangeFrom;
 use std::os::raw::c_int;
 
 use crate::cnf::literal::{Literal, Variable};
@@ -133,6 +134,83 @@ impl Solver {
                 self.add_clause(&[-lits[i], -lits[j]]);
             }
         }
+    }
+
+    pub fn exactly_k_seq_counter(&mut self, lits: &[Literal], k: u32, allocator: &mut RangeFrom<c_uint>) {
+        if k > lits.len() as u32 {
+            self.add_clause(&[]);
+        }
+
+        let last_layer_outputs = self.seq_counter(lits, allocator);
+
+        if k > 0 {
+            if let Some(x) = last_layer_outputs.get((k - 1) as usize) {
+                self.add_clause(&[*x]);
+            }
+        }
+        if let Some(x) = last_layer_outputs.get(k as usize) {
+            self.add_clause(&[-*x]);
+        }
+    }
+
+    pub fn at_least_k_seq_counter(&mut self, lits: &[Literal], k: u32, allocator: &mut RangeFrom<c_uint>) {
+        if k > lits.len() as u32 {
+            self.add_clause(&[]);
+        }
+
+        let last_layer_outputs = self.seq_counter(lits, allocator);
+
+        if k > 0 {
+            if let Some(x) = last_layer_outputs.get((k - 1) as usize) {
+                self.add_clause(&[*x]);
+            }
+        }
+    }
+
+    pub fn at_most_k_seq_counter(&mut self, lits: &[Literal], k: u32, allocator: &mut RangeFrom<c_uint>) {
+        if k > lits.len() as u32 {
+            self.add_clause(&[]);
+        }
+
+        let last_layer_outputs = self.seq_counter(lits, allocator);
+        
+        if let Some(x) = last_layer_outputs.get(k as usize) {
+            self.add_clause(&[-*x]);
+        }
+    }
+
+    fn seq_counter(&mut self, lits: &[Literal], allocator: &mut RangeFrom<c_uint>) -> Vec<Literal> {
+        let mut prev_layer_outputs = vec![lits[0]];
+
+        for lit in &lits[1..] {
+            let mut layer_outputs = vec![];
+            for _ in 0..=prev_layer_outputs.len() {
+                layer_outputs.push(Literal::new_pos(allocator.next().unwrap()));
+            };
+
+            self.add_clause(&[layer_outputs[0], -*lit]);
+            self.add_clause(&[layer_outputs[0], -prev_layer_outputs[0]]);
+            self.add_clause(&[-layer_outputs[0], prev_layer_outputs[0], *lit]);
+
+            for (i, layer_output) in layer_outputs.iter().enumerate() {
+                if i == 0 || i == layer_outputs.len() - 1 { continue; }
+
+                self.add_clause(&[-*layer_output, prev_layer_outputs[i], *lit]);
+                self.add_clause(&[-*layer_output, prev_layer_outputs[i], prev_layer_outputs[i - 1]]);
+
+                self.add_clause(&[*layer_output, -prev_layer_outputs[i], -prev_layer_outputs[i - 1]]);
+                self.add_clause(&[*layer_output, -prev_layer_outputs[i], -*lit]);
+                self.add_clause(&[*layer_output, -prev_layer_outputs[i - 1], -*lit]);
+            }
+
+            self.add_clause(&[-*layer_outputs.last().unwrap(), *lit]);
+            self.add_clause(&[-*layer_outputs.last().unwrap(), *prev_layer_outputs.last().unwrap()]);
+
+            self.add_clause(&[*layer_outputs.last().unwrap(), -*lit, -*prev_layer_outputs.last().unwrap()]);
+            prev_layer_outputs = layer_outputs;
+        }
+
+        prev_layer_outputs
     }
 
     pub fn at_most_k_sequential_counter(&mut self, _k: u32, _lits: &[Literal]) {
