@@ -36,11 +36,16 @@ impl Literal {
     pub fn new(var: Variable, negated: bool) -> Self {
         Self { var, negated }
     }
+    pub fn new_pos(var_id: c_uint) -> Self {
+        Self { var: Variable::new(var_id), negated: false }
+    }
+
+    pub fn new_neg(var_id: c_uint) -> Self { Self { var: Variable::new(var_id), negated: true } }
 
     pub fn clause_end() -> Self {
         Self {
             var: Variable::new(0),
-            negated: false
+            negated: false,
         }
     }
 }
@@ -59,17 +64,17 @@ impl Neg for Literal {
 impl From<c_int> for Literal {
     fn from(value: c_int) -> Self {
         let negated = value < 0;
-        let var = Variable{ id: value.unsigned_abs() };
+        let var = Variable { id: value.unsigned_abs() };
 
-        Literal{ var, negated }
+        Literal { var, negated }
     }
 }
 
 impl From<Literal> for c_int {
     fn from(value: Literal) -> Self {
         match value.negated {
-            true => -(value.var.id as i32), 
-            false => value.var.id as i32, 
+            true => -(value.var.id as i32),
+            false => value.var.id as i32,
         }
     }
 }

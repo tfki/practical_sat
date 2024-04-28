@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::mem;
 use std::os::raw::c_int;
 
 use crate::cnf::literal::{Literal, Variable};

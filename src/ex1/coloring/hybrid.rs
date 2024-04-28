@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::ffi::c_uint;
-use std::ops::RangeFrom;
 
 use crate::cnf::literal::{Literal, Variable};
 use crate::ex1::coloring::FindKResult;
@@ -48,7 +46,7 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
         }
 
         if solver.solve() == SolveResult::Sat {
-            if let Some(k) = go_back_until_failure(graph, timer, (var_map, solver, num_bits, allocator)) {
+            if let Some(k) = go_back_until_failure_one_hot(graph, timer, num_bits) {
                 return FindKResult::Found(k);
             } else {
                 return FindKResult::TimeoutReached;
@@ -58,32 +56,45 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
     }
 }
 
-pub fn go_back_until_failure(graph: &Graph, timer: Timer, tup: (HashMap<String, c_uint>, Solver, u32, RangeFrom<c_uint>)) -> Option<u32> {
-    let (mut var_map, mut solver, min_bits, mut allocator) = tup;
-    for x in (2_u32.pow(min_bits - 1)..2_u32.pow(min_bits)).rev() {
+pub fn go_back_until_failure_one_hot(graph: &Graph, timer: Timer, min_bits: u32) -> Option<u32> {
+    let mut solver = Solver::new();
+    let mut var_map = HashMap::new();
+    let mut allocator = 1..;
+
+    solver.set_terminate(move || timer.has_finished());
+
+    for vertex in 1..=graph.num_vertices {
+        for color in 0..2_u32.pow(min_bits) {
+            let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(allocator.next().unwrap());
+            solver.add_literal(Literal::new_pos(v_is_color));
+        }
+        solver.add_literal(Literal::clause_end());
+    }
+
+    for edge in &graph.edges {
+        for color in 0..2_u32.pow(min_bits) {
+            let a_is_color = *var_map.entry(format!("v{}_c{}", edge.0, color)).or_insert(allocator.next().unwrap());
+            let b_is_color = *var_map.entry(format!("v{}_c{}", edge.1, color)).or_insert(allocator.next().unwrap());
+            solver.add_clause(&[Literal::new_neg(a_is_color), Literal::new_neg(b_is_color)]);
+        }
+    }
+
+    for color in 0..2_u32.pow(min_bits) {
+        for vertex in 1..=graph.num_vertices {
+            let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(allocator.next().unwrap());
+            solver.add_clause(&[Literal::new_neg(v_is_color)]);
+        }
+
         if timer.has_finished() {
             return None;
         }
-        println!("disabling color {x}");
-
-        for v in 1..=graph.num_vertices {
-            for b in 0..min_bits {
-                let id = *var_map.entry(format!("v{}_b{}", v, b)).or_insert(allocator.next().unwrap());
-
-                solver.add_literal(Literal::new(Variable::new(id), (x & (1 << b) as u32) == 0));
-            }
-            solver.add_literal(Literal::clause_end());
-        }
-
-        let result = solver.solve();
-        if result == SolveResult::Unsat {
-            return Some(x + 1);
+        match solver.solve() {
+            SolveResult::Sat => {}
+            SolveResult::Unsat => return Some(2_u32.pow(min_bits) - color),
+            SolveResult::Interrupted => return None,
         }
     }
 
-    if min_bits == 1 {
-        return Some(1);
-    }
     unreachable!()
 }
 
@@ -95,3 +106,4 @@ pub fn find_k(graph: Graph, timer: Timer) -> FindKResult {
         FindKResult::TimeoutReached
     }
 }
+
