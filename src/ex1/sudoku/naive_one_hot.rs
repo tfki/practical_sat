@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::cnf::literal::Lit;
-use crate::ex1::sudoku::sudoku::{Cell, Sudoku};
+use crate::ex1::sudoku::{Cell, Sudoku};
 use crate::SatProblemResult;
 use crate::solver::{LitValue, Solver, SolveResult};
 use crate::util::Timer;

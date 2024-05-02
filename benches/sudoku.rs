@@ -2,8 +2,9 @@ use std::path::Path;
 
 use criterion::Criterion;
 
-use practical_sat::ex1::sudoku::naive_one_hot::find_solution;
-use practical_sat::ex1::sudoku::sudoku::Sudoku;
+use practical_sat::ex1::sudoku::smart_one_hot::find_solution;
+use practical_sat::ex1::sudoku::Sudoku;
+use practical_sat::util::Timer;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let paths = vec![
@@ -23,7 +24,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function(format!("sudoku-{}", path.file_name().unwrap().to_str().unwrap()), |b| b.iter(|| {
             let input = Sudoku::parse(path);
 
-            find_solution(&input);
+            find_solution(&input, Timer::new_infinite());
         }));
     }
     group.finish();
