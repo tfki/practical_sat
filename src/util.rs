@@ -12,6 +12,10 @@ impl Timer {
     }
 
     pub fn new_infinite() -> Self { Timer { start: SystemTime::now(), duration: Duration::MAX } }
+    
+    pub fn time_left(&self) -> Option<Duration> {
+        self.duration.checked_sub(SystemTime::now().duration_since(self.start).unwrap())
+    }
 
     pub fn has_finished(&self) -> bool {
         SystemTime::now().duration_since(self.start).unwrap() > self.duration

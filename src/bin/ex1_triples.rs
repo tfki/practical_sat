@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::env;
-use practical_sat::cnf::literal::Lit;
-use practical_sat::solver::{Solver, SolveResult};
+use practical_sat::solver::literal::Lit;
+use practical_sat::solver::{ipasir, Solver, SolveResult};
 
 fn main() {
     let max = env::args().last().unwrap().parse::<u32>().unwrap();
-    let mut var_map = HashMap::<String, u32>::new();
-    let mut solver = Solver::new();
-    let mut allocator = 1..;
+    let mut var_map = HashMap::<String, Lit>::new();
+    let mut solver = Solver::<ipasir::Solver>::new();
     let mut triples_count = 0;
 
     for n in 1..=max {
@@ -22,12 +21,12 @@ fn main() {
                     break;
                 } else {
                     triples_count += 1;
-                    let id_a = *var_map.entry(format!("{:5} is colored", triple[0])).or_insert(allocator.next().unwrap());
-                    let id_b = *var_map.entry(format!("{:5} is colored", triple[1])).or_insert(allocator.next().unwrap());
-                    let id_c = *var_map.entry(format!("{:5} is colored", triple[2])).or_insert(allocator.next().unwrap());
+                    let a = *var_map.entry(format!("{:5} is colored", triple[0])).or_insert(solver.new_lit());
+                    let b = *var_map.entry(format!("{:5} is colored", triple[1])).or_insert(solver.new_lit());
+                    let c = *var_map.entry(format!("{:5} is colored", triple[2])).or_insert(solver.new_lit());
 
-                    solver.add_clause(&[Lit::new(id_a), Lit::new(id_b), Lit::new(id_c)]);
-                    solver.add_clause(&[-Lit::new(id_a), -Lit::new(id_b), -Lit::new(id_c)]);
+                    solver.add_clause([a, b, c]);
+                    solver.add_clause([-a, -b, -c]);
                     println!("{triple:?}");
                 }
             }
@@ -41,7 +40,7 @@ fn main() {
             keys.sort();
             
             for key in keys {
-                println!("{key} = {:?}", solver.val(Lit::new(var_map[key])));
+                println!("{key} = {:?}", solver.val(var_map[key]));
             }
         }
         x => println!("{x:?}"),

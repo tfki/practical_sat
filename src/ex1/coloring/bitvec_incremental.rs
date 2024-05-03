@@ -1,29 +1,21 @@
 use std::collections::HashMap;
-use std::ffi::c_uint;
-use std::ops::RangeFrom;
 
-use crate::cnf::literal::Lit;
+use crate::solver::literal::Lit;
 use crate::ex1::coloring::FindKResult;
 use crate::ex1::coloring::graph::Graph;
-use crate::solver::{Solver, SolveResult};
+use crate::solver::{ipasir, Solver, SolverImpl, SolveWithTimeoutResult};
 use crate::util::Timer;
 
 fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
-    let mut allocator = 1..;
     let mut var_map = HashMap::new();
-
     let mut num_bits = 1;
 
     loop {
         println!("trying {num_bits} bits");
-        let mut solver = Solver::new();
+        let mut solver = Solver::<ipasir::Solver>::new();
 
         if timer.has_finished() {
             return FindKResult::TimeoutReached;
-        } else {
-            solver.set_terminate(move || {
-                timer.has_finished()
-            });
         }
 
         for edge in &graph.edges {
@@ -35,31 +27,31 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
                     std::mem::swap(&mut a, &mut b);
                 }
 
-                let a_bit_id = *var_map.entry(format!("v{}_b{}", a, bit)).or_insert(allocator.next().unwrap());
-                let b_bit_id = *var_map.entry(format!("v{}_b{}", b, bit)).or_insert(allocator.next().unwrap());
+                let a_bit = *var_map.entry(format!("v{}_b{}", a, bit)).or_insert(solver.new_lit());
+                let b_bit = *var_map.entry(format!("v{}_b{}", b, bit)).or_insert(solver.new_lit());
 
-                let diff_id1 = *var_map.entry(format!("v{}_v{}_b{}_diff1", a, b, bit)).or_insert(allocator.next().unwrap());
+                let diff = *var_map.entry(format!("v{}_v{}_b{}_diff1", a, b, bit)).or_insert(solver.new_lit());
 
-                solver.add_clause(&[-Lit::new(diff_id1), Lit::new(a_bit_id).into(), Lit::new(b_bit_id).into()]);
-                solver.add_clause(&[-Lit::new(diff_id1), -Lit::new(a_bit_id), -Lit::new(b_bit_id)]);
-                diff_vars.push(Lit::new(diff_id1));
+                solver.add_clause([-diff, a_bit, b_bit]);
+                solver.add_clause([-diff, -a_bit, -b_bit]);
+                diff_vars.push(diff);
             }
-            solver.add_clause(&diff_vars);
+            solver.add_clause(diff_vars);
         }
 
-        if solver.solve() == SolveResult::Sat {
-            if let Some(k) = go_back_until_failure(graph, timer, (var_map, solver, num_bits, allocator)) {
-                return FindKResult::Found(k);
+        if solver.solve_with_timeout(timer.time_left().unwrap()) == SolveWithTimeoutResult::Sat {
+            return if let Some(k) = go_back_until_failure(graph, timer, (var_map, solver, num_bits)) {
+                FindKResult::Found(k)
             } else {
-                return FindKResult::TimeoutReached;
+                FindKResult::TimeoutReached
             }
         }
         num_bits += 1;
     }
 }
 
-pub fn go_back_until_failure(graph: &Graph, timer: Timer, tup: (HashMap<String, c_uint>, Solver, u32, RangeFrom<c_uint>)) -> Option<u32> {
-    let (mut var_map, mut solver, min_bits, mut allocator) = tup;
+pub fn go_back_until_failure(graph: &Graph, timer: Timer, tup: (HashMap<String, Lit>, Solver<impl SolverImpl>, u32)) -> Option<u32> {
+    let (var_map, mut solver, min_bits) = tup;
     for x in (2_u32.pow(min_bits - 1)..2_u32.pow(min_bits)).rev() {
         if timer.has_finished() {
             return None;
@@ -68,20 +60,22 @@ pub fn go_back_until_failure(graph: &Graph, timer: Timer, tup: (HashMap<String, 
 
         for v in 1..=graph.num_vertices {
             for b in 0..min_bits {
-                let id = *var_map.entry(format!("v{}_b{}", v, b)).or_insert(allocator.next().unwrap());
+                let lit = *var_map.get(&format!("v{}_b{}", v, b)).unwrap();
                 
                 if  (x & (1 << b) as u32) == 0 {
-                    solver.add_literal(-Lit::new(id));
+                    solver.add_literal(-lit);
                 } else {
-                    solver.add_literal(Lit::new(id));
+                    solver.add_literal(lit);
                 }
             }
             solver.add_literal(Lit::clause_end());
         }
 
-        let result = solver.solve();
-        if result == SolveResult::Unsat {
-            return Some(x + 1);
+        let result = solver.solve_with_timeout(timer.time_left().unwrap());
+        match result {
+            SolveWithTimeoutResult::Unsat => return Some(x + 1),
+            SolveWithTimeoutResult::TimeoutReached => return None,
+            SolveWithTimeoutResult::Sat => {}
         }
     }
 

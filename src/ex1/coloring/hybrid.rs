@@ -1,27 +1,22 @@
 use std::collections::HashMap;
 
-use crate::cnf::literal::Lit;
+use crate::solver::literal::Lit;
 use crate::ex1::coloring::FindKResult;
 use crate::ex1::coloring::graph::Graph;
-use crate::solver::{Solver, SolveResult};
+use crate::solver::{ipasir, Solver, SolveWithTimeoutResult};
 use crate::util::Timer;
 
 fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
-    let mut allocator = 1..;
     let mut var_map = HashMap::new();
 
     let mut num_bits = 1;
 
     loop {
         println!("trying {num_bits} bits");
-        let mut solver = Solver::new();
+        let mut solver = Solver::<ipasir::Solver>::new();
 
         if timer.has_finished() {
             return FindKResult::TimeoutReached;
-        } else {
-            solver.set_terminate(move || {
-                timer.has_finished()
-            });
         }
 
         for edge in &graph.edges {
@@ -33,19 +28,19 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
                     std::mem::swap(&mut a, &mut b);
                 }
 
-                let a_bit_id = *var_map.entry(format!("v{}_b{}", a, bit)).or_insert(allocator.next().unwrap());
-                let b_bit_id = *var_map.entry(format!("v{}_b{}", b, bit)).or_insert(allocator.next().unwrap());
+                let a_bit = *var_map.entry(format!("v{}_b{}", a, bit)).or_insert(solver.new_lit());
+                let b_bit = *var_map.entry(format!("v{}_b{}", b, bit)).or_insert(solver.new_lit());
 
-                let diff_id1 = *var_map.entry(format!("v{}_v{}_b{}_diff1", a, b, bit)).or_insert(allocator.next().unwrap());
+                let diff = *var_map.entry(format!("v{}_v{}_b{}_diff1", a, b, bit)).or_insert(solver.new_lit());
 
-                solver.add_clause(&[-Lit::new(diff_id1), Lit::new(a_bit_id).into(), Lit::new(b_bit_id).into()]);
-                solver.add_clause(&[-Lit::new(diff_id1), -Lit::new(a_bit_id), -Lit::new(b_bit_id)]);
-                diff_vars.push(Lit::new(diff_id1));
+                solver.add_clause([-diff, a_bit, b_bit]);
+                solver.add_clause([-diff, -a_bit, -b_bit]);
+                diff_vars.push(diff);
             }
-            solver.add_clause(&diff_vars);
+            solver.add_clause(diff_vars);
         }
 
-        if solver.solve() == SolveResult::Sat {
+        if solver.solve_with_timeout(timer.time_left().unwrap()) == SolveWithTimeoutResult::Sat {
             if let Some(k) = go_back_until_failure_one_hot(graph, timer, num_bits) {
                 return FindKResult::Found(k);
             } else {
@@ -57,41 +52,38 @@ fn find_min_no_bits(graph: &Graph, timer: Timer) -> FindKResult {
 }
 
 pub fn go_back_until_failure_one_hot(graph: &Graph, timer: Timer, min_bits: u32) -> Option<u32> {
-    let mut solver = Solver::new();
+    let mut solver = Solver::<ipasir::Solver>::new();
     let mut var_map = HashMap::new();
-    let mut allocator = 1..;
-
-    solver.set_terminate(move || timer.has_finished());
 
     for vertex in 1..=graph.num_vertices {
         for color in 0..2_u32.pow(min_bits) {
-            let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(allocator.next().unwrap());
-            solver.add_literal(Lit::new(v_is_color));
+            let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(solver.new_lit());
+            solver.add_literal(v_is_color);
         }
         solver.add_literal(Lit::clause_end());
     }
 
     for edge in &graph.edges {
         for color in 0..2_u32.pow(min_bits) {
-            let a_is_color = *var_map.entry(format!("v{}_c{}", edge.0, color)).or_insert(allocator.next().unwrap());
-            let b_is_color = *var_map.entry(format!("v{}_c{}", edge.1, color)).or_insert(allocator.next().unwrap());
-            solver.add_clause(&[-Lit::new(a_is_color), -Lit::new(b_is_color)]);
+            let a_is_color = *var_map.entry(format!("v{}_c{}", edge.0, color)).or_insert(solver.new_lit());
+            let b_is_color = *var_map.entry(format!("v{}_c{}", edge.1, color)).or_insert(solver.new_lit());
+            solver.add_clause([-a_is_color, -b_is_color]);
         }
     }
 
     for color in 0..2_u32.pow(min_bits) {
         for vertex in 1..=graph.num_vertices {
-            let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(allocator.next().unwrap());
-            solver.add_clause(&[-Lit::new(v_is_color)]);
+            let v_is_color = *var_map.entry(format!("v{}_c{}", vertex, color)).or_insert(solver.new_lit());
+            solver.add_clause([-v_is_color]);
         }
 
         if timer.has_finished() {
             return None;
         }
-        match solver.solve() {
-            SolveResult::Sat => {}
-            SolveResult::Unsat => return Some(2_u32.pow(min_bits) - color),
-            SolveResult::Interrupted => return None,
+        match solver.solve_with_timeout(timer.time_left().unwrap()) {
+            SolveWithTimeoutResult::Sat => {}
+            SolveWithTimeoutResult::Unsat => return Some(2_u32.pow(min_bits) - color),
+            SolveWithTimeoutResult::TimeoutReached => return None,
         }
     }
 

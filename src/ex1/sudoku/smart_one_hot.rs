@@ -1,13 +1,122 @@
 use std::collections::HashMap;
 use std::ops::RangeFrom;
+use std::time::Duration;
 
-use crate::{dimacs_emitting_solver, SatProblemResult};
-use crate::cnf::literal::Lit;
+use crate::{SatProblemResult};
+use crate::solver::literal::Lit;
 use crate::ex1::sudoku::{Cell, Sudoku};
-use crate::solver::{LitValue, Solver, SolveResult};
-use crate::util::Timer;
+use crate::solver::{AtMostOneStrategy, dimacs_emitting, ExactlyKStrategy, ipasir, LitValue, Solver, SolverImpl, SolveWithTimeoutResult};
 
-fn build_value_grid(sudoku: &mut Sudoku, allocator: &mut RangeFrom<u32>, var_map: &mut HashMap<String, Lit>, no_opt_trivial: bool) -> (Vec<Vec<Vec<Option<Lit>>>>, Vec<String>) {
+fn propagate_occupied_cells(sudoku: &Sudoku, grid: &mut Vec<Vec<Vec<Option<Lit>>>>) {
+    for x in 0..sudoku.n.pow(2) {
+        for y in 0..sudoku.n.pow(2) {
+            if let Cell::Occupied(num) = sudoku.cell(x, y) {
+                grid[x as usize][y as usize].iter_mut().for_each(|cell| *cell = None);
+
+                let block_x = x / sudoku.n;
+                let block_y = y / sudoku.n;
+
+                let x_offset = block_x * sudoku.n;
+                let y_offset = block_y * sudoku.n;
+
+                for x in x_offset..(x_offset + sudoku.n) {
+                    for y in y_offset..(y_offset + sudoku.n) {
+                        grid[x as usize][y as usize][*num as usize - 1] = None;
+                    }
+                }
+
+                for x in 0..sudoku.n.pow(2) {
+                    grid[x as usize][y as usize][*num as usize - 1] = None;
+                }
+                for y in 0..sudoku.n.pow(2) {
+                    grid[x as usize][y as usize][*num as usize - 1] = None;
+                }
+            }
+        }
+    }
+}
+
+fn make_trivial_choices(sudoku: &mut Sudoku, grid: &mut Vec<Vec<Vec<Option<Lit>>>>) -> Option<Vec<String>> {
+    let mut comments = vec![];
+
+    for x in 0..sudoku.n.pow(2) {
+        for y in 0..sudoku.n.pow(2) {
+            if grid[x as usize][y as usize].iter().filter(|item| item.is_some()).count() == 1 {
+                let (index, _) = grid[x as usize][y as usize].iter().enumerate().find(|(_, item)| item.is_some()).unwrap();
+                *sudoku.cell_mut(x, y) = Cell::Occupied(index as u32 + 1);
+                comments.push(format!("{x}/{y} is trivially {}", index + 1));
+            }
+        }
+    }
+
+    for col_i in 0..sudoku.n.pow(2) {
+        for val in 1..=sudoku.n.pow(2) {
+            let mut iter = grid[col_i as usize].iter().enumerate()
+                .filter_map(|(row_i, col)| col[val as usize - 1].map(|_| row_i));
+            let first = iter.next();
+            let more_than_one = iter.next().is_some();
+
+            if first.is_some() && !more_than_one && !sudoku.col(col_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
+                grid[col_i as usize][first.unwrap()].iter_mut().for_each(|lit| *lit = None);
+                grid[col_i as usize][first.unwrap()][val as usize - 1] = Some(Lit::new(1));
+
+                *sudoku.cell_mut(col_i, first.unwrap() as u32) = Cell::Occupied(val);
+                comments.push(format!("{col_i}/{} is trivially {}", first.unwrap(), val));
+            }
+        }
+    }
+
+    for row_i in 0..sudoku.n.pow(2) {
+        for val in 1..=sudoku.n.pow(2) {
+            let mut iter = grid.iter()
+                .map(move |col| &col[row_i as usize])
+                .enumerate()
+                .filter_map(|(col_i, cell)| cell[val as usize - 1].map(|_| col_i));
+            let first = iter.next();
+            let more_than_one = iter.next().is_some();
+
+            // if val is not already present in column
+            if first.is_some() && !more_than_one && !sudoku.row(row_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
+                grid[first.unwrap()][row_i as usize].iter_mut().for_each(|lit| *lit = None);
+                grid[first.unwrap()][row_i as usize][val as usize - 1] = Some(Lit::new(1));
+
+                *sudoku.cell_mut(first.unwrap() as u32, row_i) = Cell::Occupied(val);
+                comments.push(format!("{}/{row_i} is trivially {}", first.unwrap(), val));
+            }
+        }
+    }
+
+    for block_x in 0..sudoku.n {
+        for block_y in 0..sudoku.n {
+            let cells_in_block = block_iter(block_x, block_y, sudoku.n);
+
+            for val in 1..=sudoku.n.pow(2) {
+                let mut iter = cells_in_block.iter()
+                    .filter_map(|(x, y)| grid[*x as usize][*y as usize][val as usize - 1].map(|_| (*x, *y)));
+                let first = iter.next();
+                let more_than_one = iter.next().is_some();
+
+                if first.is_some() && !more_than_one && !cells_in_block.iter().any(|(x, y)| matches!(sudoku.cell(*x, *y), Cell::Occupied(num) if *num == val)) {
+                    cells_in_block.iter().for_each(|(x, y)| grid[*x as usize][*y as usize][val as usize - 1] = None);
+
+                    let (x, y) = first.unwrap();
+                    grid[x as usize][y as usize][val as usize - 1] = Some(Lit::new(1));
+
+                    *sudoku.cell_mut(x, y) = Cell::Occupied(val);
+                    comments.push(format!("{x}/{y} is trivially {val}"));
+                }
+            }
+        }
+    }
+
+    if comments.is_empty() {
+        None
+    } else {
+        Some(comments)
+    }
+}
+
+fn build_value_grid_and_optimize(sudoku: &mut Sudoku, allocator: &mut RangeFrom<u32>, var_map: &mut HashMap<String, Lit>) -> (Vec<Vec<Vec<Option<Lit>>>>, Vec<String>) {
     let mut grid: Vec<Vec<Vec<Option<Lit>>>> = Vec::new();
     let mut comments = vec![];
 
@@ -25,46 +134,13 @@ fn build_value_grid(sudoku: &mut Sudoku, allocator: &mut RangeFrom<u32>, var_map
     }
 
     loop {
-        for x in 0..sudoku.n.pow(2) {
-            for y in 0..sudoku.n.pow(2) {
-                if let Cell::Occupied(num) = sudoku.cell(x, y) {
-                    grid[x as usize][y as usize].iter_mut().for_each(|cell| *cell = None);
+        propagate_occupied_cells(sudoku, &mut grid);
 
-                    let block_x = x / sudoku.n;
-                    let block_y = y / sudoku.n;
-
-                    let x_offset = block_x * sudoku.n;
-                    let y_offset = block_y * sudoku.n;
-
-                    for x in x_offset..(x_offset + sudoku.n) {
-                        for y in y_offset..(y_offset + sudoku.n) {
-                            grid[x as usize][y as usize][*num as usize - 1] = None;
-                        }
-                    }
-
-                    for x in 0..sudoku.n.pow(2) {
-                        grid[x as usize][y as usize][*num as usize - 1] = None;
-                    }
-                    for y in 0..sudoku.n.pow(2) {
-                        grid[x as usize][y as usize][*num as usize - 1] = None;
-                    }
-                }
-            }
+        if let Some(mut new_comments) = make_trivial_choices(sudoku, &mut grid) {
+            comments.append(&mut new_comments);
+        } else {
+            break;
         }
-        if no_opt_trivial { break; }
-
-        let mut all_done = true;
-        for x in 0..sudoku.n.pow(2) {
-            for y in 0..sudoku.n.pow(2) {
-                if grid[x as usize][y as usize].iter().filter(|item| item.is_some()).count() == 1 {
-                    let (index, _) = grid[x as usize][y as usize].iter().enumerate().find(|(_, item)| item.is_some()).unwrap();
-                    *sudoku.cell_mut(x, y) = Cell::Occupied(index as u32 + 1);
-                    comments.push(format!("{x}/{y} is trivially {}", index + 1));
-                    all_done = false;
-                }
-            }
-        }
-        if all_done { break; }
     }
 
     for x in 0..sudoku.n.pow(2) {
@@ -95,13 +171,10 @@ fn block_iter(block_x: u32, block_y: u32, n: u32) -> Vec<(u32, u32)> {
     result
 }
 
-pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> {
-    let mut sudoku = sudoku.clone();
-
-    let mut solver = Solver::new();
+fn encode(sudoku: &mut Sudoku, solver: &mut Solver<impl SolverImpl>) -> HashMap<String, Lit> {
     let mut var_map = HashMap::new();
     let mut allocator = 1..;
-    let (potential_value_grid, _) = build_value_grid(&mut sudoku, &mut allocator, &mut var_map, false);
+    let (potential_value_grid, _) = build_value_grid_and_optimize(sudoku, &mut allocator, &mut var_map);
 
     // convenience iterators
     let vals = 1..=sudoku.n.pow(2);
@@ -111,8 +184,9 @@ pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> 
     for (x, y) in cells.clone() {
         let values = potential_value_grid[x as usize][y as usize].iter().filter_map(|item| *item).collect::<Vec<Lit>>();
         if !values.is_empty() {
-            solver.at_least_one(&values);
-            solver.at_most_one_pairwise(&values);
+            // solver.at_least_one(&values);
+            // solver.at_most_one_pairwise(&values);
+            solver.exactly_k(ExactlyKStrategy::SequentialCounter, &values, 1);
         }
     }
 
@@ -124,7 +198,7 @@ pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> 
             // if val is already present in column
             if !sudoku.col(col_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
                 solver.at_least_one(&values);
-                solver.at_most_one_pairwise(&values);
+                solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
             }
         }
     }
@@ -138,7 +212,7 @@ pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> 
             // if val is not already present in column
             if !sudoku.row(row_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
                 solver.at_least_one(&values);
-                solver.at_most_one_pairwise(&values);
+                solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
             }
         }
     }
@@ -153,15 +227,27 @@ pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> 
 
                 if !cells_in_block.iter().any(|(x, y)| matches!(sudoku.cell(*x, *y), Cell::Occupied(num) if *num == val)) {
                     solver.at_least_one(&values);
-                    solver.at_most_one_pairwise(&values);
+                    solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
                 }
             }
         }
     }
+    
+    var_map
+}
 
-    solver.set_terminate(move || timer.has_finished());
-    match solver.solve() {
-        SolveResult::Sat => {
+pub fn find_solution(sudoku: &Sudoku, timeout: Duration) -> SatProblemResult<Sudoku> {
+    let mut sudoku = sudoku.clone();
+
+    let mut solver = Solver::<ipasir::Solver>::new();
+    let var_map = encode(&mut sudoku, &mut solver);
+    
+    let vals = 1..=sudoku.n.pow(2);
+    let one_axis_coords = 0..sudoku.n.pow(2);
+    let cells = one_axis_coords.clone().flat_map(|x| one_axis_coords.clone().map(move |y| (x, y)));
+
+    match solver.solve_with_timeout(timeout) {
+        SolveWithTimeoutResult::Sat => {
             for (x, y) in cells.clone() {
                 for val in vals.clone() {
                     if let Some(id) = var_map.get(&format!("{x}/{y} is {val}")) {
@@ -174,79 +260,20 @@ pub fn find_solution(sudoku: &Sudoku, timer: Timer) -> SatProblemResult<Sudoku> 
 
             SatProblemResult::Sat(sudoku)
         }
-        SolveResult::Interrupted => SatProblemResult::Timeout,
-        SolveResult::Unsat => SatProblemResult::Unsat,
+        SolveWithTimeoutResult::TimeoutReached => SatProblemResult::Timeout,
+        SolveWithTimeoutResult::Unsat => SatProblemResult::Unsat,
     }
 }
 
-pub fn gen_dimacs(sudoku: &Sudoku, no_opt_trivial: bool) -> String {
+pub fn gen_dimacs(sudoku: &Sudoku) -> String {
     let mut sudoku = sudoku.clone();
 
-    let mut solver = dimacs_emitting_solver::Solver::new();
-    let mut var_map = HashMap::new();
-    let mut allocator = 1..;
-    let (potential_value_grid, trivial_assignment_comments) = build_value_grid(&mut sudoku, &mut allocator, &mut var_map, no_opt_trivial);
-    trivial_assignment_comments.into_iter().for_each(|string| solver.add_comment(string));
-
-    // convenience iterators
-    let vals = 1..=sudoku.n.pow(2);
-    let one_axis_coords = 0..sudoku.n.pow(2);
-    let cells = one_axis_coords.clone().flat_map(|x| one_axis_coords.clone().map(move |y| (x, y)));
-
-    for (x, y) in cells.clone() {
-        let values = potential_value_grid[x as usize][y as usize].iter().filter_map(|item| *item).collect::<Vec<Lit>>();
-        if !values.is_empty() {
-            solver.at_least_one(&values);
-            solver.at_most_one_pairwise(&values);
-        }
-    }
-
-    for col_i in one_axis_coords.clone() {
-        for val in vals.clone() {
-            let values = potential_value_grid[col_i as usize].iter()
-                .filter_map(|col| col[val as usize - 1]).collect::<Vec<Lit>>();
-
-            // if val is already present in column
-            if !sudoku.col(col_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
-                solver.at_least_one(&values);
-                solver.at_most_one_pairwise(&values);
-            }
-        }
-    }
-
-    for row_i in one_axis_coords.clone() {
-        for val in vals.clone() {
-            let values = potential_value_grid.iter()
-                .map(move |col| &col[row_i as usize])
-                .filter_map(|cell| cell[val as usize - 1]).collect::<Vec<Lit>>();
-
-            // if val is not already present in column
-            if !sudoku.row(row_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
-                solver.at_least_one(&values);
-                solver.at_most_one_pairwise(&values);
-            }
-        }
-    }
-
-    for block_x in 0..sudoku.n {
-        for block_y in 0..sudoku.n {
-            let cells_in_block = block_iter(block_x, block_y, sudoku.n);
-
-            for val in vals.clone() {
-                let values = cells_in_block.iter()
-                    .filter_map(|(x, y)| potential_value_grid[*x as usize][*y as usize][val as usize - 1]).collect::<Vec<Lit>>();
-
-                if !cells_in_block.iter().any(|(x, y)| matches!(sudoku.cell(*x, *y), Cell::Occupied(num) if *num == val)) {
-                    solver.at_least_one(&values);
-                    solver.at_most_one_pairwise(&values);
-                }
-            }
-        }
-    }
+    let mut solver = Solver::<dimacs_emitting::Solver>::new();
+    let var_map = encode(&mut sudoku, &mut solver);
 
     for (key, value) in var_map {
-        solver.add_comment(format!("{key} <=> {}", value.id));
+        solver.implementation.add_comment(format!("{key} <=> {}", value.id));
     }
 
-    solver.get_dimacs()
+    solver.implementation.get_dimacs()
 }
