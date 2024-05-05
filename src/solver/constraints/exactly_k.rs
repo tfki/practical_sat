@@ -13,9 +13,10 @@ impl ExactlyKStrategy {
             ExactlyKStrategy::SequentialCounter => {
                 if k > lits.len() as u32 {
                     solver.add_clause([]);
+                    return;
                 }
 
-                let last_layer_outputs = seq_counter(lits, solver);
+                let last_layer_outputs = seq_counter(lits, solver, k);
 
                 if k > 0 {
                     if let Some(x) = last_layer_outputs.get((k - 1) as usize) {

@@ -1,10 +1,24 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::{SatProblemResult};
-use crate::solver::literal::Lit;
 use crate::ex1::sudoku::{Cell, Sudoku};
-use crate::solver::{AtMostOneStrategy, dimacs_emitting, ExactlyKStrategy, ipasir, LitValue, Solver, SolverImpl, SolveWithTimeoutResult};
+use crate::SatProblemResult;
+use crate::SatProblemResult::Sat;
+use crate::solver::{ipasir, LitValue, Solver, SolverImpl, SolveWithTimeoutResult};
+use crate::solver::literal::Lit;
+
+fn block_iter(block_x: u32, block_y: u32, n: u32) -> Vec<(u32, u32)> {
+    let x_offset = block_x * n;
+    let y_offset = block_y * n;
+
+    let mut result = vec![];
+    for x in x_offset..(x_offset + n) {
+        for y in y_offset..(y_offset + n) {
+            result.push((x, y));
+        }
+    }
+    result
+}
 
 fn propagate_occupied_cells(sudoku: &Sudoku, grid: &mut Vec<Vec<Vec<Option<Lit>>>>) {
     for x in 0..sudoku.n.pow(2) {
@@ -157,128 +171,172 @@ fn build_value_grid_and_optimize(sudoku: &mut Sudoku, solver: &mut Solver<impl S
     (grid, comments)
 }
 
-fn block_iter(block_x: u32, block_y: u32, n: u32) -> Vec<(u32, u32)> {
-    let x_offset = block_x * n;
-    let y_offset = block_y * n;
+fn encode(sudoku: &Sudoku) -> (Solver<impl SolverImpl>, HashMap<String, Lit>) {
+    let mut solver = Solver::<ipasir::Solver>::new();
+    let mut var_map = HashMap::<String, Lit>::new();
+    let mut sudoku = sudoku.clone();
 
-    let mut result = vec![];
-    for x in x_offset..(x_offset + n) {
-        for y in y_offset..(y_offset + n) {
-            result.push((x, y));
-        }
-    }
-    result
-}
+    let bits = (sudoku.n.pow(2) as f32).log2().ceil() as u32;
 
-fn encode(sudoku: &mut Sudoku, solver: &mut Solver<impl SolverImpl>) -> HashMap<String, Lit> {
-    let mut var_map = HashMap::new();
-    let (potential_value_grid, _) = build_value_grid_and_optimize(sudoku, solver, &mut var_map);
+    let (possible_value_grid, new_comments) = build_value_grid_and_optimize(&mut sudoku, &mut solver, &mut var_map);
 
-    // convenience iterators
-    let vals = 1..=sudoku.n.pow(2);
-    let one_axis_coords = 0..sudoku.n.pow(2);
-    let cells = one_axis_coords.clone().flat_map(|x| one_axis_coords.clone().map(move |y| (x, y)));
-
-    for (x, y) in cells.clone() {
-        let values = potential_value_grid[x as usize][y as usize].iter().filter_map(|item| *item).collect::<Vec<Lit>>();
-        assert_ne!(values.len(), 1);
-        if !values.is_empty() {
-            solver.exactly_k(ExactlyKStrategy::SequentialCounter, &values, 1);
-            // solver.at_least_one(&values);
-            // solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
-        }
-    }
-
-    for col_i in one_axis_coords.clone() {
-        for val in vals.clone() {
-            let values = potential_value_grid[col_i as usize].iter()
-                .filter_map(|col| col[val as usize - 1]).collect::<Vec<Lit>>();
-            assert_ne!(values.len(), 1);
-
-            // if val is already present in column
-            if !sudoku.col(col_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
-                // solver.exactly_k(ExactlyKStrategy::SequentialCounter, &values, 1);
-                solver.at_least_one(&values);
-                solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
+    for x in 0..sudoku.n.pow(2) {
+        for y in 0..sudoku.n.pow(2) {
+            if let Cell::Occupied(num) = sudoku.cell(x, y) {
+                for bit in 0..bits {
+                    let lit = *var_map.entry(format!("{x}/{y} b{bit}")).or_insert(solver.new_lit());
+                    if ((num - 1) & (1 << bit) as u32) == 0 {
+                        solver.add_clause([-lit]);
+                    } else {
+                        solver.add_clause([lit]);
+                    }
+                }
+            } else {
+                for val in 0..sudoku.n.pow(2) {
+                    if possible_value_grid[x as usize][y as usize][val as usize].is_none() {
+                        let mut solver_w_open_clause = solver.start_clause();
+                        for bit in 0..bits {
+                            let lit = *var_map.entry(format!("{x}/{y} b{bit}")).or_insert(solver_w_open_clause.new_lit());
+                            if (val & (1 << bit) as u32) == 0 {
+                                solver_w_open_clause.add_literal(lit);
+                            } else {
+                                solver_w_open_clause.add_literal(-lit);
+                            }
+                        }
+                        solver = solver_w_open_clause.end_clause();
+                    }
+                }
+                for val in sudoku.n.pow(2)..2_u32.pow(bits) {                    
+                    let mut solver_w_open_clause = solver.start_clause();
+                    for bit in 0..bits {
+                        let lit = *var_map.entry(format!("{x}/{y} b{bit}")).or_insert(solver_w_open_clause.new_lit());
+                        if (val & (1 << bit) as u32) == 0 {
+                            solver_w_open_clause.add_literal(lit);
+                        } else {
+                            solver_w_open_clause.add_literal(-lit);
+                        }
+                    }
+                    solver = solver_w_open_clause.end_clause();
+                }
             }
         }
     }
 
-    for row_i in one_axis_coords.clone() {
-        for val in vals.clone() {
-            let values = potential_value_grid.iter()
-                .map(move |col| &col[row_i as usize])
-                .filter_map(|cell| cell[val as usize - 1]).collect::<Vec<Lit>>();
-            assert_ne!(values.len(), 1);
+    for col_k in 0..sudoku.n.pow(2) {
+        for i in 0..sudoku.n.pow(2) {
+            for j in (i + 1)..sudoku.n.pow(2) {
+                let mut diff_bits = vec![];
 
-            // if val is not already present in column
-            if !sudoku.row(row_i).any(|item| matches!(item, Cell::Occupied(num) if *num == val)) {
-                // solver.exactly_k(ExactlyKStrategy::SequentialCounter, &values, 1);
-                solver.at_least_one(&values);
-                solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
+                for bit in 0..bits {
+                    let a = *var_map.entry(format!("{col_k}/{i} b{bit}")).or_insert(solver.new_lit());
+                    let b = *var_map.entry(format!("{col_k}/{j} b{bit}")).or_insert(solver.new_lit());
+                    let diff = *var_map.entry(format!("{col_k}/{i}, {col_k}/{j} differ in b{bit}")).or_insert(solver.new_lit());
+
+                    solver.add_clause([-diff, a, b]);
+                    solver.add_clause([-diff, -a, -b]);
+
+                    solver.add_clause([diff, -a, b]);
+                    solver.add_clause([diff, a, -b]);
+
+                    diff_bits.push(diff);
+                }
+
+                solver.add_clause(diff_bits);
+            }
+        }
+    }
+
+    for row_k in 0..sudoku.n.pow(2) {
+        for i in 0..sudoku.n.pow(2) {
+            for j in (i + 1)..sudoku.n.pow(2) {
+                let mut diff_bits = vec![];
+
+                for bit in 0..bits {
+                    let a = *var_map.entry(format!("{i}/{row_k} b{bit}")).or_insert(solver.new_lit());
+                    let b = *var_map.entry(format!("{j}/{row_k} b{bit}")).or_insert(solver.new_lit());
+                    let diff = *var_map.entry(format!("{i}/{row_k}, {j}/{row_k} differ in b{bit}")).or_insert(solver.new_lit());
+
+                    solver.add_clause([-diff, a, b]);
+                    solver.add_clause([-diff, -a, -b]);
+
+                    solver.add_clause([diff, -a, b]);
+                    solver.add_clause([diff, a, -b]);
+
+                    diff_bits.push(diff);
+                }
+
+                solver.add_clause(diff_bits);
             }
         }
     }
 
     for block_x in 0..sudoku.n {
         for block_y in 0..sudoku.n {
-            let cells_in_block = block_iter(block_x, block_y, sudoku.n);
+            let block = block_iter(block_x, block_y, sudoku.n);
 
-            for val in vals.clone() {
-                let values = cells_in_block.iter()
-                    .filter_map(|(x, y)| potential_value_grid[*x as usize][*y as usize][val as usize - 1]).collect::<Vec<Lit>>();
-                assert_ne!(values.len(), 1);
+            for i in 0..sudoku.n.pow(2) {
+                for j in (i + 1)..sudoku.n.pow(2) {
+                    let a = block[i as usize];
+                    let b = block[j as usize];
 
-                if !cells_in_block.iter().any(|(x, y)| matches!(sudoku.cell(*x, *y), Cell::Occupied(num) if *num == val)) {
-                    // solver.exactly_k(ExactlyKStrategy::SequentialCounter, &values, 1);
-                    solver.at_least_one(&values);
-                    solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
+                    let mut diff_bits = vec![];
+
+                    for bit in 0..bits {
+                        let a_lit = *var_map.entry(format!("{}/{} b{bit}", a.0, a.1)).or_insert(solver.new_lit());
+                        let b_lit = *var_map.entry(format!("{}/{} b{bit}", b.0, b.1)).or_insert(solver.new_lit());
+                        let diff = *var_map.entry(format!("{}/{}, {}/{} differ in b{bit}", a.0, a.1, b.0, b.1)).or_insert(solver.new_lit());
+
+                        solver.add_clause([-diff, a_lit, b_lit]);
+                        solver.add_clause([-diff, -a_lit, -b_lit]);
+
+                        solver.add_clause([diff, -a_lit, b_lit]);
+                        solver.add_clause([diff, a_lit, -b_lit]);
+
+                        diff_bits.push(diff);
+                    }
+
+                    solver.add_clause(diff_bits);
                 }
             }
         }
     }
-    
-    var_map
+
+    (solver, var_map)
 }
 
 pub fn find_solution(sudoku: &Sudoku, timeout: Duration) -> SatProblemResult<Sudoku> {
-    let mut sudoku = sudoku.clone();
+    let (mut solver, var_map) = encode(sudoku);
+    let mut solution = sudoku.clone();
 
-    let mut solver = Solver::<ipasir::Solver>::new();
-    let var_map = encode(&mut sudoku, &mut solver);
-    
-    let vals = 1..=sudoku.n.pow(2);
-    let one_axis_coords = 0..sudoku.n.pow(2);
-    let cells = one_axis_coords.clone().flat_map(|x| one_axis_coords.clone().map(move |y| (x, y)));
-
+    let bits = (sudoku.n.pow(2) as f32).log2().ceil() as u32;
     match solver.solve_with_timeout(timeout) {
         SolveWithTimeoutResult::Sat => {
-            for (x, y) in cells.clone() {
-                for val in vals.clone() {
-                    if let Some(id) = var_map.get(&format!("{x}/{y} is {val}")) {
-                        if let LitValue::True = solver.val(*id) {
-                            *sudoku.cell_mut(x, y) = Cell::Occupied(val);
+            let mut keys = var_map.keys().cloned().collect::<Vec<String>>();
+            keys.sort();
+
+            for x in 0..sudoku.n.pow(2) {
+                for y in 0..sudoku.n.pow(2) {
+                    let mut num = 0;
+
+                    for bit in 0..bits {
+                        let lit = var_map[&format!("{x}/{y} b{bit}")];
+                        if solver.val(lit) == LitValue::True {
+                            num += 1 << bit;
                         }
                     }
+
+                    num += 1;
+                    *solution.cell_mut(x, y) = Cell::Occupied(num);
                 }
             }
 
-            SatProblemResult::Sat(sudoku)
+            Sat(solution)
         }
-        SolveWithTimeoutResult::TimeoutReached => SatProblemResult::Timeout,
         SolveWithTimeoutResult::Unsat => SatProblemResult::Unsat,
+        SolveWithTimeoutResult::TimeoutReached => SatProblemResult::Timeout,
     }
 }
 
 pub fn gen_dimacs(sudoku: &Sudoku) -> String {
-    let mut sudoku = sudoku.clone();
-
-    let mut solver = Solver::<dimacs_emitting::Solver>::new();
-    let var_map = encode(&mut sudoku, &mut solver);
-
-    for (key, value) in var_map {
-        solver.implementation.add_comment(format!("{key} <=> {}", value.id));
-    }
-
-    solver.implementation.get_dimacs()
+    todo!()
 }

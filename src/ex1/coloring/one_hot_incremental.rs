@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::solver::literal::Lit;
 use crate::ex1::coloring::FindKResult;
 use crate::ex1::coloring::graph::Graph;
 use crate::solver::{ipasir, Solver, SolveWithTimeoutResult};
@@ -55,12 +54,13 @@ pub fn find_k(graph: Graph, timer: Timer) -> FindKResult {
         }
 
         for vertex in 1..=graph.num_vertices {
+            let mut solver_w_open_clause = solver.start_clause();
             for color in 0..num_colors {
-                let v_is_color = *var_map.entry(format!("v{}_is_c{}", vertex, color)).or_insert(solver.new_lit());
-                solver.add_literal(v_is_color);
+                let v_is_color = *var_map.entry(format!("v{}_is_c{}", vertex, color)).or_insert(solver_w_open_clause.new_lit());
+                solver_w_open_clause.add_literal(v_is_color);
             }
-            solver.add_literal(deactivate_color_disjunctions);
-            solver.add_literal(Lit::clause_end());
+            solver_w_open_clause.add_literal(deactivate_color_disjunctions);
+            solver = solver_w_open_clause.end_clause();
         }
     }
 }

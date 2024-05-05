@@ -15,7 +15,7 @@ impl AtMostKStrategy {
                     solver.add_clause([]);
                 }
 
-                let last_layer_outputs = seq_counter(lits, solver);
+                let last_layer_outputs = seq_counter(lits, solver, k);
 
                 if let Some(x) = last_layer_outputs.get(k as usize) {
                     solver.add_clause([-*x]);

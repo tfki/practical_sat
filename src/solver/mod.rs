@@ -1,14 +1,13 @@
 use std::ops::RangeFrom;
 use std::time::Duration;
 
+pub use constraints::*;
 use literal::Lit;
 
 pub mod dimacs_emitting;
 pub mod ipasir;
 mod constraints;
 pub mod literal;
-
-pub use constraints::*;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum SolveResult {
@@ -38,7 +37,7 @@ pub trait SolverImpl {
     fn assume(&mut self, lit: Lit);
 
     fn solve(&mut self) -> SolveResult;
-    
+
     fn solve_with_timeout(&mut self, timeout: Duration) -> SolveWithTimeoutResult;
 
     fn val(&mut self, lit: Lit) -> LitValue;
@@ -54,19 +53,24 @@ impl<T: SolverImpl> Solver<T> {
 
     pub fn new_lit(&mut self) -> Lit { Lit::new(self.allocator.next().unwrap()) }
 
-    pub fn add_literal(&mut self, lit: Lit) { self.implementation.add_literal(lit); }
+    pub fn start_clause(self) -> SolverWithOpenClause<T> {
+        SolverWithOpenClause {
+            implementation: self.implementation,
+            allocator: self.allocator,
+        }
+    }
 
     pub fn add_clause(&mut self, clause: impl IntoIterator<Item=Lit>) {
         for lit in clause {
-            self.add_literal(lit);
+            self.implementation.add_literal(lit);
         }
-        self.add_literal(Lit { id: 0, negated: false });
+        self.implementation.add_literal(Lit { id: 0, negated: false });
     }
 
     pub fn assume(&mut self, lit: Lit) { self.implementation.assume(lit) }
 
     pub fn solve(&mut self) -> SolveResult { self.implementation.solve() }
-    
+
     pub fn solve_with_timeout(&mut self, timeout: Duration) -> SolveWithTimeoutResult { self.implementation.solve_with_timeout(timeout) }
 
     pub fn val(&mut self, lit: Lit) -> LitValue { self.implementation.val(lit) }
@@ -80,4 +84,20 @@ impl<T: SolverImpl> Solver<T> {
     pub fn at_most_k(&mut self, strat: AtMostKStrategy, lits: &[Lit], k: u32) { strat.encode(lits, k, self) }
 
     pub fn exactly_k(&mut self, strat: ExactlyKStrategy, lits: &[Lit], k: u32) { strat.encode(lits, k, self) }
+}
+
+pub struct SolverWithOpenClause<T: SolverImpl> {
+    pub implementation: T,
+    allocator: RangeFrom<u32>,
+}
+
+impl<T: SolverImpl> SolverWithOpenClause<T> {
+    pub fn new_lit(&mut self) -> Lit { Lit::new(self.allocator.next().unwrap()) }
+
+    pub fn add_literal(&mut self, lit: Lit) { self.implementation.add_literal(lit); }
+
+    pub fn end_clause(mut self) -> Solver<T> {
+        self.implementation.add_literal(Lit { id: 0, negated: false });
+        Solver { implementation: self.implementation, allocator: self.allocator }
+    }
 }

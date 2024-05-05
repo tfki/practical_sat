@@ -11,13 +11,6 @@ impl Lit {
         assert_ne!(id, 0);
         Lit { id, negated: false }
     }
-
-    pub fn clause_end() -> Self {
-        Self {
-            id: 0,
-            negated: false,
-        }
-    }
 }
 
 impl Neg for Lit {

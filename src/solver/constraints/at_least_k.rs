@@ -15,7 +15,7 @@ impl AtLeastKStrategy {
                     solver.add_clause([]);
                 }
 
-                let last_layer_outputs = seq_counter(lits, solver);
+                let last_layer_outputs = seq_counter(lits, solver, k - 1);
 
                 if k > 0 {
                     if let Some(x) = last_layer_outputs.get((k - 1) as usize) {

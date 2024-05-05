@@ -8,6 +8,7 @@ pub mod naive_one_hot;
 pub mod smart_one_hot;
 #[cfg(test)]
 mod test;
+pub mod naive_log;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Cell {

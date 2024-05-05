@@ -64,23 +64,23 @@ mod one_hot_incremental {
 }
 
 mod bitvec_incremental {
-    // gen_test! {"assets/ex1/coloring/myciel3.col", myciel3, 4, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/myciel3.col", myciel3, 4, crate::ex1::coloring::bitvec_incremental::find_k}
     gen_test! {"assets/ex1/coloring/myciel4.col", myciel4, 5, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/le450_5a.col", le450_5a, 5, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/le450_5b.col", le450_5b, 5, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/le450_5c.col", le450_5c, 5, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/le450_5d.col", le450_5d, 5, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/myciel5.col", myciel5, 6, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/myciel6.col", myciel6, 7, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/myciel7.col", myciel7, 8, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/miles250.col", miles250, 8, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/jean.col", jean, 10, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/anna.col", anna, 11, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/david.col", david, 11, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/huck.col", huck, 11, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/queen11_11.col", queen11_11, 11, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/queen13_13.col", queen13_13, 13, crate::ex1::coloring::bitvec_incremental::find_k}
-    // gen_test! {"assets/ex1/coloring/homer.col", homer, 13, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/le450_5a.col", le450_5a, 5, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/le450_5b.col", le450_5b, 5, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/le450_5c.col", le450_5c, 5, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/le450_5d.col", le450_5d, 5, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/myciel5.col", myciel5, 6, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/myciel6.col", myciel6, 7, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/myciel7.col", myciel7, 8, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/miles250.col", miles250, 8, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/jean.col", jean, 10, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/anna.col", anna, 11, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/david.col", david, 11, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/huck.col", huck, 11, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/queen11_11.col", queen11_11, 11, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/queen13_13.col", queen13_13, 13, crate::ex1::coloring::bitvec_incremental::find_k}
+    gen_test! {"assets/ex1/coloring/homer.col", homer, 13, crate::ex1::coloring::bitvec_incremental::find_k}
 // gen_test! {"assets/ex1/coloring/le450_15b.col", le450_15b, 15, crate::ex1::coloring::bitvec_incremental::find_k}
 // gen_test! {"assets/ex1/coloring/le450_15c.col", le450_15c, 15, crate::ex1::coloring::bitvec_incremental::find_k}
 // gen_test! {"assets/ex1/coloring/le450_15d.col", le450_15d, 15, crate::ex1::coloring::bitvec_incremental::find_k}
