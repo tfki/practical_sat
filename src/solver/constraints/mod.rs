@@ -25,7 +25,7 @@ fn seq_counter(lits: &[Lit], solver: &mut Solver<impl SolverImpl>, max_k: u32) -
         k += 1;
 
         let mut layer_outputs = vec![];
-        for _ in 0..=k.min(max_k as usize) {
+        for _ in 0..=k.min(max_k as usize - 1) {
             layer_outputs.push(solver.new_lit());
         };
 
