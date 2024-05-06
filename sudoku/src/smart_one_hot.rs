@@ -170,9 +170,9 @@ fn block_iter(block_x: u32, block_y: u32, n: u32) -> Vec<(u32, u32)> {
     result
 }
 
-fn encode(sudoku: &mut Sudoku, solver: &mut Solver<impl SolverImpl>) -> HashMap<String, Lit> {
+fn encode(sudoku: &mut Sudoku, solver: &mut Solver<impl SolverImpl>) -> (HashMap<String, Lit>, Vec<String>) {
     let mut var_map = HashMap::new();
-    let (potential_value_grid, _) = build_value_grid_and_optimize(sudoku, solver, &mut var_map);
+    let (potential_value_grid, trivial_comments) = build_value_grid_and_optimize(sudoku, solver, &mut var_map);
 
     // convenience iterators
     let vals = 1..=sudoku.n.pow(2);
@@ -238,14 +238,14 @@ fn encode(sudoku: &mut Sudoku, solver: &mut Solver<impl SolverImpl>) -> HashMap<
         }
     }
 
-    var_map
+    (var_map, trivial_comments)
 }
 
 pub fn find_solution(sudoku: &Sudoku, timeout: Duration) -> SatProblemResult<Sudoku> {
     let mut sudoku = sudoku.clone();
 
     let mut solver = Solver::<ipasir::Solver>::new();
-    let var_map = encode(&mut sudoku, &mut solver);
+    let (var_map, _) = encode(&mut sudoku, &mut solver);
 
     let vals = 1..=sudoku.n.pow(2);
     let one_axis_coords = 0..sudoku.n.pow(2);
@@ -274,7 +274,8 @@ pub fn gen_dimacs(sudoku: &Sudoku) -> String {
     let mut sudoku = sudoku.clone();
 
     let mut solver = Solver::<dimacs_emitting::Solver>::new();
-    let var_map = encode(&mut sudoku, &mut solver);
+    let (var_map, comments) = encode(&mut sudoku, &mut solver);
+    comments.into_iter().for_each(|c| solver.implementation.add_comment(c));
 
     for (key, value) in var_map {
         solver.implementation.add_comment(format!("{key} <=> {}", value.id));
