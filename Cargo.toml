@@ -9,13 +9,9 @@ edition = "2021"
 lto = true
 
 [dependencies]
-ipasir-sys = "0.3.0"
+sudoku = { path = "sudoku" }
+coloring = { path = "coloring" }
+solver = { path = "solver" }
+
 regex = "1.10.4"
 gcd = "2.3.0"
-
-[dev-dependencies]
-criterion = "0.5.1"
-
-[[bench]]
-name = "main"
-harness = false

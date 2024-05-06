@@ -1,0 +1,14 @@
+c FILE: anna.col
+c Translated from Stanford GraphBase File: anna.gb
+c Stanford GraphBase ID: book(?anna?,138,0,1,239,0,0,0)
+p edge 5 5
+e 1 2
+e 1 3
+e 1 4
+e 1 5
+e 2 3
+e 2 4
+e 2 5
+e 3 4
+e 3 5
+e 4 5
