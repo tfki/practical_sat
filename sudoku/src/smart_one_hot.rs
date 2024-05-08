@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use solver::{AtMostOneStrategy, dimacs_emitting, ExactlyKStrategy, ipasir, LitValue, SatProblemResult, Solver, SolverImpl, SolveWithTimeoutResult};
+use solver::{AtLeastKStrategy, AtMostOneStrategy, dimacs_emitting, ExactlyKStrategy, ipasir, LitValue, SatProblemResult, Solver, SolverImpl, SolveWithTimeoutResult};
 use solver::literal::Lit;
 
 use crate::{Cell, Sudoku};
@@ -183,7 +183,7 @@ fn encode(sudoku: &mut Sudoku, solver: &mut Solver<impl SolverImpl>) -> (HashMap
         let values = potential_value_grid[x as usize][y as usize].iter().filter_map(|item| *item).collect::<Vec<Lit>>();
         assert_ne!(values.len(), 1);
         if !values.is_empty() {
-            solver.exactly_k(ExactlyKStrategy::SequentialCounter, &values, 1);
+            solver.at_least_k(AtLeastKStrategy::SequentialCounter, &values, 1);
             // solver.at_least_one(&values);
             // solver.at_most_one(AtMostOneStrategy::Pairwise, &values);
         }
