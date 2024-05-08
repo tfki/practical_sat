@@ -10,6 +10,7 @@ pub mod timer;
 mod constraints;
 pub mod literal;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum SatProblemResult<T> {
     Sat(T),
     Unsat,

@@ -7,7 +7,7 @@ pub struct Lit {
 }
 
 impl Lit {
-    pub fn new(id: u32) -> Self {
+    pub(crate) fn new(id: u32) -> Self {
         assert_ne!(id, 0);
         Lit { id, negated: false }
     }

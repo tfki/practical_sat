@@ -125,3 +125,52 @@ impl SolverImpl for Solver {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    mod trivial {
+        use crate::{ipasir, SolveResult, SolverImpl};
+        use crate::literal::Lit;
+
+        #[test]
+        fn unsat() {
+            let mut solver = ipasir::Solver::new();
+            solver.add_literal(Lit { id: 0, negated: false });
+
+            assert!(matches!(solver.solve(), SolveResult::Unsat));
+        }
+
+        #[test]
+        fn sat() {
+            let mut solver = ipasir::Solver::new();
+
+            assert!(matches!(solver.solve(), SolveResult::Sat));
+        }
+    }
+    mod single_lit {
+        use crate::{ipasir, LitValue, SolveResult, SolverImpl};
+        use crate::literal::Lit;
+
+        #[test]
+        fn sat() {
+            let mut solver = ipasir::Solver::new();
+            solver.add_literal(Lit { id: 1, negated: false });
+            solver.add_literal(Lit { id: 0, negated: false });
+
+            assert!(matches!(solver.solve(), SolveResult::Sat));
+            assert!(matches!(solver.val(Lit::new(1)), LitValue::True));
+        }
+
+        #[test]
+        fn unsat() {
+            let mut solver = ipasir::Solver::new();
+            solver.add_literal(Lit { id: 1, negated: false });
+            solver.add_literal(Lit { id: 0, negated: false });
+
+            solver.add_literal(Lit { id: 1, negated: true });
+            solver.add_literal(Lit { id: 0, negated: false });
+
+            assert!(matches!(solver.solve(), SolveResult::Unsat));
+        }
+    }
+}
