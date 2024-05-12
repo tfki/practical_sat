@@ -1,0 +1,39 @@
+(declare-fun e (Int) Int)
+(declare-fun s (Int) Int)
+(declare-fun d (Int) Int)
+
+(assert (forall ((x Int)) (> (e x) 4)))
+(assert (forall ((x Int)) (> (s x) 4)))
+(assert (forall ((x Int)) (> (d x) 4)))
+
+(assert (forall ((x Int)) (< (e x) 11)))
+(assert (forall ((x Int)) (< (s x) 11)))
+(assert (forall ((x Int)) (< (d x) 11)))
+
+(assert (> (e 3) (e 1)))
+(assert (exists ((x Int)) (and (and (< 0 x) (> 6 x)) (and (= (d x) (+ 1 (d 2))) (= (+ 1 (e 5)) (e x))))))
+(assert (exists ((x Int)) (and (and (< 0 x) (> 6 x)) (and (not (= x 4)) (= 5 (s x))))))
+(assert (exists ((x Int)) (and (and (< 0 x) (> 6 x)) (and (= (s x) (+ 1 (s 3))) (= (+ 1 (e 4)) (e x))))))
+(assert (and (> (s 1) (d 1)) (> (e 1) (d 1))))
+(assert (exists ((x Int)) (and (and (< 0 x) (> 6 x)) (and (not (= 5 x)) (and (= (s x) (+ 1 (s 2))) (= (d x) (+ 1 (d 3))))))))
+
+(check-sat)
+
+(eval (d 1))
+(eval (d 2))
+(eval (d 3))
+(eval (d 4))
+(eval (d 5))
+
+(eval (s 1))
+(eval (s 2))
+(eval (s 3))
+(eval (s 4))
+(eval (s 5))
+
+(eval (e 1))
+(eval (e 2))
+(eval (e 3))
+(eval (e 4))
+(eval (e 5))
+
