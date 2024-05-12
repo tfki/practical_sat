@@ -63,11 +63,11 @@ pub fn solve(input: Input) -> SatProblemResult<Solution> {
         SolveResult::Sat => {
             let mut solution = Solution::new(input.width, input.height);
 
-            let mut keys = var_map.keys().cloned().collect::<Vec<String>>();
-            keys.sort();
-            for key in keys {
-                println!("{key} is {:?}", solver.val(var_map[&key]))
-            }
+            // let mut keys = var_map.keys().cloned().collect::<Vec<String>>();
+            // keys.sort();
+            // for key in keys {
+            //     println!("{key} is {:?}", solver.val(var_map[&key]))
+            // }
 
             for x in 0..input.width {
                 for y in 0..input.height {

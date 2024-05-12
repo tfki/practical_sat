@@ -839,3 +839,127 @@ mod pairs {
         }
     }
 }
+
+mod complex {
+    use solver::SatProblemResult;
+
+    use crate::{CellContent, Input, naive};
+
+    #[test]
+    pub fn exercise_sheet_example1() {
+        let solution = naive::solve(Input {
+            height: 5,
+            width: 8,
+            num_i: 1,
+            num_t: 2,
+            num_l: 2,
+            num_s: 2,
+            num_o: 3,
+        });
+
+        println!("{solution:?}");
+        assert!(matches!(solution, SatProblemResult::Sat(_)));
+
+        if let SatProblemResult::Sat(solution) = solution {
+            assert_eq!(solution.grid.len(), 8);
+            assert_eq!(solution.grid[0].len(), 5);
+
+            assert!(matches!(solution.grid[0][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[1][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[2][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[3][0], Some(CellContent::S)));
+            assert!(matches!(solution.grid[4][0], Some(CellContent::S)));
+            assert!(matches!(solution.grid[5][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[6][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[7][0], Some(CellContent::T)));
+
+            assert!(matches!(solution.grid[0][1], Some(CellContent::L)));
+            assert!(matches!(solution.grid[1][1], Some(CellContent::T)));
+            assert!(matches!(solution.grid[2][1], Some(CellContent::S)));
+            assert!(matches!(solution.grid[3][1], Some(CellContent::S)));
+            assert!(matches!(solution.grid[4][1], Some(CellContent::S)));
+            assert!(matches!(solution.grid[5][1], Some(CellContent::S)));
+            assert!(matches!(solution.grid[6][1], Some(CellContent::T)));
+            assert!(matches!(solution.grid[7][1], Some(CellContent::I)));
+
+            assert!(matches!(solution.grid[0][2], Some(CellContent::L)));
+            assert!(matches!(solution.grid[1][2], Some(CellContent::L)));
+            assert!(matches!(solution.grid[2][2], Some(CellContent::L)));
+            assert!(matches!(solution.grid[3][2], Some(CellContent::S)));
+            assert!(matches!(solution.grid[4][2], Some(CellContent::S)));
+            assert!(matches!(solution.grid[5][2], Some(CellContent::O)));
+            assert!(matches!(solution.grid[6][2], Some(CellContent::O)));
+            assert!(matches!(solution.grid[7][2], Some(CellContent::I)));
+
+            assert!(matches!(solution.grid[0][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[1][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[2][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[3][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[4][3], Some(CellContent::L)));
+            assert!(matches!(solution.grid[5][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[6][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[7][3], Some(CellContent::I)));
+
+            assert!(matches!(solution.grid[0][4], Some(CellContent::O)));
+            assert!(matches!(solution.grid[1][4], Some(CellContent::O)));
+            assert!(matches!(solution.grid[2][4], Some(CellContent::O)));
+            assert!(matches!(solution.grid[3][4], Some(CellContent::O)));
+            assert!(matches!(solution.grid[4][4], Some(CellContent::L)));
+            assert!(matches!(solution.grid[5][4], Some(CellContent::L)));
+            assert!(matches!(solution.grid[6][4], Some(CellContent::L)));
+            assert!(matches!(solution.grid[7][4], Some(CellContent::I)));
+        }
+    }
+
+
+    #[test]
+    pub fn exercise_sheet_example2() {
+        let solution = naive::solve(Input {
+            height: 5,
+            width: 5,
+            num_i: 2,
+            num_t: 1,
+            num_l: 1,
+            num_s: 1,
+            num_o: 1,
+        });
+
+        println!("{solution:?}");
+        assert!(matches!(solution, SatProblemResult::Sat(_)));
+
+        if let SatProblemResult::Sat(solution) = solution {
+            assert_eq!(solution.grid.len(), 5);
+            assert_eq!(solution.grid[0].len(), 5);
+
+            assert!(matches!(solution.grid[0][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[1][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[2][0], Some(CellContent::T)));
+            assert!(matches!(solution.grid[3][0], Some(CellContent::S)));
+            assert!(matches!(solution.grid[4][0], Some(CellContent::S)));
+
+            assert!(matches!(solution.grid[0][1], Some(CellContent::I)));
+            assert!(matches!(solution.grid[1][1], Some(CellContent::T)));
+            assert!(matches!(solution.grid[2][1], Some(CellContent::S)));
+            assert!(matches!(solution.grid[3][1], Some(CellContent::S)));
+            assert!(matches!(solution.grid[4][1], Some(CellContent::I)));
+
+            assert!(matches!(solution.grid[0][2], Some(CellContent::I)));
+            assert!(matches!(solution.grid[1][2], None));
+            assert!(matches!(solution.grid[2][2], Some(CellContent::O)));
+            assert!(matches!(solution.grid[3][2], Some(CellContent::O)));
+            assert!(matches!(solution.grid[4][2], Some(CellContent::I)));
+
+            assert!(matches!(solution.grid[0][3], Some(CellContent::I)));
+            assert!(matches!(solution.grid[1][3], Some(CellContent::L)));
+            assert!(matches!(solution.grid[2][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[3][3], Some(CellContent::O)));
+            assert!(matches!(solution.grid[4][3], Some(CellContent::I)));
+
+            assert!(matches!(solution.grid[0][4], Some(CellContent::I)));
+            assert!(matches!(solution.grid[1][4], Some(CellContent::L)));
+            assert!(matches!(solution.grid[2][4], Some(CellContent::L)));
+            assert!(matches!(solution.grid[3][4], Some(CellContent::L)));
+            assert!(matches!(solution.grid[4][4], Some(CellContent::I)));
+        }
+    }
+}

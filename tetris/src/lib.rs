@@ -5,8 +5,8 @@ pub mod naive;
 mod test;
 
 pub struct Input {
-    pub width: u32,
     pub height: u32,
+    pub width: u32,
     pub num_i: u32,
     pub num_t: u32,
     pub num_l: u32,

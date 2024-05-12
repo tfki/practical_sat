@@ -5,3 +5,10 @@ edition = "2021"
 
 [dependencies]
 solver = { path = "../solver" }
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
+[[bench]]
+name = "benchmarks"
+harness = false
