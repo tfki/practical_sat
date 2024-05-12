@@ -66,6 +66,13 @@ mod smart_one_hot {
     gen_test! {"assets/puzzle11a.sudoku", puzzle11a, crate::smart_one_hot::find_solution}
     gen_test! {"assets/puzzle11b.sudoku", puzzle11b, crate::smart_one_hot::find_solution}
     gen_test! {"assets/puzzle12a.sudoku", puzzle12a, crate::smart_one_hot::find_solution}
+    // gen_test! {"assets/puzzle12b.sudoku", puzzle12b, crate::smart_one_hot::find_solution}
+    gen_test! {"assets/puzzle13a.sudoku", puzzle13a, crate::smart_one_hot::find_solution}
+    // gen_test! {"assets/puzzle13b.sudoku", puzzle13b, crate::smart_one_hot::find_solution}
+    gen_test! {"assets/puzzle14a.sudoku", puzzle14a, crate::smart_one_hot::find_solution}
+    // gen_test! {"assets/puzzle14b.sudoku", puzzle14b, crate::smart_one_hot::find_solution}
+    gen_test! {"assets/puzzle15a.sudoku", puzzle15a, crate::smart_one_hot::find_solution}
+    // gen_test! {"assets/puzzle15b.sudoku", puzzle15b, crate::smart_one_hot::find_solution}
 }
 
 mod naive_log_encoding {
