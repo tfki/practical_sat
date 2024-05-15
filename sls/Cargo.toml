@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rand = "0.8.5"
+solver = { path = "../solver" }
+bitvec = "1.0.1"
+
+[profile.release]
+lto = true
+debug = true

@@ -1,23 +1,17 @@
-use std::fs;
-use std::io::Write;
-use std::process::{Command, Stdio};
-use std::time::SystemTime;
+use sls::cnf::Cnf;
+use sls::gsat;
 
 fn main() {
-    let num = fs::read_dir("assets").unwrap().count();
-    
-    for (i, file) in fs::read_dir("assets").unwrap().enumerate() {
-        print!("({i}/{num}) running {:?}...", file.as_ref().unwrap().file_name());
-        std::io::stdout().flush().unwrap();
-        let start = SystemTime::now();
-        Command::new("cadical").stdout(Stdio::null()).arg("-t").arg("3").arg(file.as_ref().unwrap().path()).spawn().unwrap().wait().unwrap();
-        let duration = SystemTime::now().duration_since(start).unwrap();
+    use solver::{ipasir, Solver, SolveResult};
 
-        if duration.as_millis() >= 3000 {
-            println!("took too long, deleting");
-            std::fs::remove_file(file.as_ref().unwrap().path()).unwrap();
-        } else {
-            println!("took {}s, keeping", duration.as_secs());
-        }
+    let path = "assets/d24e98d3e8f9ce352e81ffc56962eeba-driverlog1_v01i.shuffled-as.sat05-4027.cnf";
+    let cnf = Cnf::from_dimacs(path);
+    let mut solver = Solver::<ipasir::Solver>::new();
+
+    solver.load_dimacs_from_file(path);
+    let sls_assignment = gsat::solve(cnf).unwrap();
+    for lit in sls_assignment {
+        solver.add_clause([lit]);
     }
+    assert!(matches!(solver.solve(), SolveResult::Sat));
 }
