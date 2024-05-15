@@ -1,29 +1,33 @@
+use std::time::SystemTime;
 use solver::literal::Lit;
 
 use crate::assignment::Assignment;
 use crate::cnf::{Cnf, LitOrClauseEnd};
 
-#[inline(never)]
 pub fn solve(cnf: Cnf) -> Option<Assignment> {
     let max_tries = 1000000;
     let max_flips = 2 * cnf.max_var_id;
 
     let mut buffer = vec![];
 
+    let start = SystemTime::now();
     let mut assignment = Assignment::new_random(cnf.max_var_id as usize + 1);
-    for _ in 0..max_tries {
+    for try_num in 0..max_tries {
         for _ in 0..max_flips {
             match find_var_to_flip(&cnf, &assignment, &mut buffer) {
                 FindVarToFlipResult::FoundVar(flip_id) => {
-                    assignment[flip_id as usize] = !assignment[flip_id as usize];
+                    assignment.set(flip_id as usize, !assignment[flip_id as usize]);
                 }
                 FindVarToFlipResult::FormulaAlreadySat => {
+                    println!("{} tries per second", try_num as f32 / SystemTime::now().duration_since(start).unwrap().as_secs_f32());
+
                     return Some(assignment);
                 }
             }
         }
         assignment.randomize();
     }
+    println!("{} tries per second", max_tries as f32 / SystemTime::now().duration_since(start).unwrap().as_secs_f32());
 
     None
 }
@@ -33,7 +37,6 @@ enum FindVarToFlipResult {
     FormulaAlreadySat,
 }
 
-#[inline(never)]
 fn find_var_to_flip(cnf: &Cnf, assignment: &Assignment, flip_unsat_counter: &mut Vec<u32>) -> FindVarToFlipResult {
     flip_unsat_counter.resize(cnf.max_var_id as usize + 1, 0);
     flip_unsat_counter.fill(0);

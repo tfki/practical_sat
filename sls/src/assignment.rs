@@ -1,8 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::{Enumerate, Skip};
 use std::ops::{Index, IndexMut};
-use bitvec::prelude::BitVec;
-use bitvec::ptr::{BitRef, Mut};
+use bit_vec::{BitVec, IntoIter};
 
 use rand::random;
 use solver::literal::Lit;
@@ -24,7 +23,7 @@ impl Display for Assignment {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "v ")?;
         for (id, val) in self.inner.iter().enumerate() {
-            match *val {
+            match val {
                 true => write!(f, "{id} ")?,
                 false => write!(f, "-{id} ")?,
             }
@@ -41,7 +40,13 @@ impl Assignment {
     }
 
     pub fn randomize(&mut self) {
-        self.inner.iter_mut().for_each(|mut val| *val = random());
+        for i in 0..self.inner.len() {
+            self.inner.set(i, random());
+        }
+    }
+    
+    pub fn set(&mut self, var_id: usize, value: bool) {
+        self.inner.set(var_id, value);
     }
 }
 
@@ -55,21 +60,15 @@ impl IntoIterator for Assignment {
 }
 
 impl Index<usize> for Assignment {
-    type Output = BitRef;
+    type Output = bool;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.inner[index]
     }
 }
 
-impl IndexMut<usize> for Assignment {
-    fn index_mut(&mut self, index: usize) -> BitRef<Mut> {
-        self.inner.get_mut(index).unwrap()
-    }
-}
-
 pub struct AssignmentIterator {
-    assignment_iter: Skip<Enumerate<IntoIter<bool>>>,
+    assignment_iter: Skip<Enumerate<IntoIter>>,
 }
 
 impl Iterator for AssignmentIterator {
