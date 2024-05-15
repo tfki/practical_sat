@@ -1,4 +1,6 @@
+use std::io::{BufRead, BufReader};
 use std::ops::RangeFrom;
+use std::path::Path;
 use std::time::Duration;
 
 pub use constraints::*;
@@ -56,10 +58,40 @@ pub struct Solver<T: SolverImpl> {
     allocator: RangeFrom<u32>,
 }
 
+impl<T: SolverImpl> Default for Solver<T> {
+    fn default() -> Self {
+        Self {
+            implementation: T::new(),
+            allocator: 0..,
+        }
+    }
+}
+
 impl<T: SolverImpl> Solver<T> {
     pub fn new() -> Self { Self { implementation: T::new(), allocator: 1.. } }
 
     pub fn new_lit(&mut self) -> Lit { Lit::new(self.allocator.next().unwrap()) }
+
+    pub fn load_dimacs_from_file(&mut self, path: impl AsRef<Path>) {
+        let reader = BufReader::new(std::fs::File::open(path).unwrap());
+
+        for line in reader.lines() {
+            let line = line.unwrap();
+            if line.starts_with('p') | line.starts_with('c') {
+                continue;
+            } else {
+                let mut solver_with_open_clause = std::mem::take(self).start_clause();
+                line.split_ascii_whitespace()
+                    .map(|lit_str| Lit::from(lit_str.parse::<i32>().unwrap()))
+                    .for_each(|lit| {
+                        if lit.id != 0 {
+                            solver_with_open_clause.add_literal(lit);
+                        }
+                    });
+                *self = solver_with_open_clause.end_clause();
+            }
+        }
+    }
 
     pub fn start_clause(self) -> SolverWithOpenClause<T> {
         SolverWithOpenClause {
