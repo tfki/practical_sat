@@ -1,17 +1,31 @@
+use std::env;
+
 use sls::cnf::Cnf;
-use sls::gsat;
+use sls::sls::{solve, Strategy};
 
 fn main() {
-    use solver::{ipasir, Solver, SolveResult};
-
-    let path = "assets/d24e98d3e8f9ce352e81ffc56962eeba-driverlog1_v01i.shuffled-as.sat05-4027.cnf";
+    assert!(env::args().count() > 1);
+    let path = env::args().last().unwrap();
     let cnf = Cnf::from_dimacs(path);
-    let mut solver = Solver::<ipasir::Solver>::new();
 
-    solver.load_dimacs_from_file(path);
-    let sls_assignment = gsat::solve(cnf).unwrap();
-    for lit in sls_assignment {
-        solver.add_clause([lit]);
+    match solve(cnf, Strategy::WalkSat, None) {
+        None => println!("no assignment found"),
+        Some(assignment) => {
+            let mut line_length = 1_usize;
+            print!("v");
+
+            for (var, value) in assignment {
+                let string = format!(" {}{}", if value { "" } else { "-" }, var.id);
+
+                if line_length + string.len() > 4096 {
+                    println!();
+                    print!("v");
+                    line_length = 1;
+                }
+                
+                print!("{string}");
+                line_length += string.len();
+            }
+        }
     }
-    assert!(matches!(solver.solve(), SolveResult::Sat));
 }

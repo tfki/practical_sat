@@ -6,11 +6,14 @@ use std::time::Duration;
 pub use constraints::*;
 use literal::Lit;
 
+use crate::variable::Var;
+
 pub mod dimacs_emitting;
 pub mod ipasir;
 pub mod timer;
 mod constraints;
 pub mod literal;
+pub mod variable;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum SatProblemResult<T> {
@@ -84,7 +87,7 @@ impl<T: SolverImpl> Solver<T> {
                 line.split_ascii_whitespace()
                     .map(|lit_str| Lit::from(lit_str.parse::<i32>().unwrap()))
                     .for_each(|lit| {
-                        if lit.id != 0 {
+                        if lit.var.id != 0 {
                             solver_with_open_clause.add_literal(lit);
                         }
                     });
@@ -104,7 +107,7 @@ impl<T: SolverImpl> Solver<T> {
         for lit in clause {
             self.implementation.add_literal(lit);
         }
-        self.implementation.add_literal(Lit { id: 0, negated: false });
+        self.implementation.add_literal(Lit { var: Var { id: 0 }, negated: false });
     }
 
     pub fn assume(&mut self, lit: Lit) { self.implementation.assume(lit) }
@@ -137,7 +140,7 @@ impl<T: SolverImpl> SolverWithOpenClause<T> {
     pub fn add_literal(&mut self, lit: Lit) { self.implementation.add_literal(lit); }
 
     pub fn end_clause(mut self) -> Solver<T> {
-        self.implementation.add_literal(Lit { id: 0, negated: false });
+        self.implementation.add_literal(Lit { var: Var { id: 0 }, negated: false });
         Solver { implementation: self.implementation, allocator: self.allocator }
     }
 }

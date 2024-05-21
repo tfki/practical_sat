@@ -1,13 +1,14 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::{Enumerate, Skip};
 use std::ops::{Index, IndexMut};
-use bit_vec::{BitVec, IntoIter};
+use std::vec::IntoIter;
 
 use rand::random;
-use solver::literal::Lit;
+use solver::variable::Var;
 
+#[derive(Clone)]
 pub struct Assignment {
-    inner: BitVec,
+    inner: Vec<bool>,
 }
 
 impl Debug for Assignment {
@@ -35,46 +36,49 @@ impl Display for Assignment {
 impl Assignment {
     pub fn new_random(num_vars: usize) -> Self {
         Self {
-            inner: (0..num_vars).map(|_| random::<bool>()).collect(),
+            inner: (0..=num_vars).map(|_| random::<bool>()).collect(),
         }
     }
 
     pub fn randomize(&mut self) {
         for i in 0..self.inner.len() {
-            self.inner.set(i, random());
+            self.inner[i] = random();
         }
-    }
-    
-    pub fn set(&mut self, var_id: usize, value: bool) {
-        self.inner.set(var_id, value);
     }
 }
 
 impl IntoIterator for Assignment {
-    type Item = Lit;
+    type Item = (Var, bool);
     type IntoIter = AssignmentIterator;
+
 
     fn into_iter(self) -> Self::IntoIter {
         AssignmentIterator { assignment_iter: self.inner.into_iter().enumerate().skip(1) }
     }
 }
 
-impl Index<usize> for Assignment {
+impl Index<Var> for Assignment {
     type Output = bool;
+    
+    fn index(&self, index: Var) -> &Self::Output {
+        &self.inner[index.id as usize]
+    }
+}
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.inner[index]
+impl IndexMut<Var> for Assignment {
+    fn index_mut(&mut self, index: Var) -> &mut Self::Output {
+        &mut self.inner[index.id as usize]
     }
 }
 
 pub struct AssignmentIterator {
-    assignment_iter: Skip<Enumerate<IntoIter>>,
+    assignment_iter: Skip<Enumerate<IntoIter<bool>>>,
 }
 
 impl Iterator for AssignmentIterator {
-    type Item = Lit;
-
+    type Item = (Var, bool);
+    
     fn next(&mut self) -> Option<Self::Item> {
-        self.assignment_iter.next().map(|(id, val)| Lit { id: id as u32, negated: !val })
+        self.assignment_iter.next().map(|(id, val)| (Var { id: id as u32 }, val))
     }
 }

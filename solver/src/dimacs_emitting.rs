@@ -12,15 +12,15 @@ pub struct Solver {
 
 impl Solver {
     pub fn get_dimacs(&self) -> String {
-        let num_clauses = self.literals.iter().filter(|lit| lit.id == 0).count();
+        let num_clauses = self.literals.iter().filter(|lit| lit.var.id == 0).count();
         let num_vars = {
             let mut known_vars = vec![];
 
             for lit in &self.literals {
-                if lit.id == 0 { continue; }
+                if lit.var.id == 0 { continue; }
 
-                if !known_vars.contains(&lit.id) {
-                    known_vars.push(lit.id);
+                if !known_vars.contains(&lit.var.id) {
+                    known_vars.push(lit.var.id);
                 }
             }
 
@@ -31,12 +31,12 @@ impl Solver {
         writeln!(result, "p cnf {num_vars} {num_clauses}").unwrap();
 
         for lit in &self.literals {
-            if lit.id == 0 {
+            if lit.var.id == 0 {
                 writeln!(result, "0").unwrap();
             } else if lit.negated {
-                write!(result, "-{} ", lit.id).unwrap();
+                write!(result, "-{} ", lit.var.id).unwrap();
             } else {
-                write!(result, "{} ", lit.id).unwrap();
+                write!(result, "{} ", lit.var.id).unwrap();
             }
         }
 

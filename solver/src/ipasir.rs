@@ -131,11 +131,12 @@ mod test {
     mod trivial {
         use crate::{ipasir, SolveResult, SolverImpl};
         use crate::literal::Lit;
+        use crate::variable::Var;
 
         #[test]
         fn unsat() {
             let mut solver = ipasir::Solver::new();
-            solver.add_literal(Lit { id: 0, negated: false });
+            solver.add_literal(Lit { var: Var{id: 0}, negated: false });
 
             assert!(matches!(solver.solve(), SolveResult::Unsat));
         }
@@ -150,12 +151,13 @@ mod test {
     mod single_lit {
         use crate::{ipasir, LitValue, SolveResult, SolverImpl};
         use crate::literal::Lit;
+        use crate::variable::Var;
 
         #[test]
         fn sat() {
             let mut solver = ipasir::Solver::new();
-            solver.add_literal(Lit { id: 1, negated: false });
-            solver.add_literal(Lit { id: 0, negated: false });
+            solver.add_literal(Lit { var: Var {id: 1}, negated: false });
+            solver.add_literal(Lit { var: Var {id: 0}, negated: false });
 
             assert!(matches!(solver.solve(), SolveResult::Sat));
             assert!(matches!(solver.val(Lit::new(1)), LitValue::True));
@@ -164,11 +166,11 @@ mod test {
         #[test]
         fn unsat() {
             let mut solver = ipasir::Solver::new();
-            solver.add_literal(Lit { id: 1, negated: false });
-            solver.add_literal(Lit { id: 0, negated: false });
+            solver.add_literal(Lit { var: Var {id: 1}, negated: false });
+            solver.add_literal(Lit { var: Var {id: 0}, negated: false });
 
-            solver.add_literal(Lit { id: 1, negated: true });
-            solver.add_literal(Lit { id: 0, negated: false });
+            solver.add_literal(Lit { var: Var {id: 1}, negated: true });
+            solver.add_literal(Lit { var: Var {id: 0}, negated: false });
 
             assert!(matches!(solver.solve(), SolveResult::Unsat));
         }
