@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Formatter};
 
 pub mod naive;
+pub mod naive2;
+
 #[cfg(test)]
 mod test;
 

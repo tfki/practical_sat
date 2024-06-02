@@ -8,9 +8,9 @@ fn main() {
         width: args[2].parse().unwrap(),
         num_i: args[3].parse().unwrap(),
         num_t: args[4].parse().unwrap(),
-        num_l: args[5].parse().unwrap(),
-        num_s: args[6].parse().unwrap(),
+        num_s: args[5].parse().unwrap(),
+        num_l: args[6].parse().unwrap(),
         num_o: args[7].parse().unwrap(),
     };
-    println!("{:?}", tetris::naive::solve(input));
+    println!("{:?}", tetris::naive2::solve(input));
 }

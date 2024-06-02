@@ -288,7 +288,7 @@ pub fn gen_dimacs(sudoku: &Sudoku) -> String {
     comments.into_iter().for_each(|c| solver.implementation.add_comment(c));
 
     for (key, value) in var_map {
-        solver.implementation.add_comment(format!("{key} <=> {}", value.id));
+        solver.implementation.add_comment(format!("{key} <=> {}", value.var.id));
     }
 
     solver.implementation.get_dimacs()

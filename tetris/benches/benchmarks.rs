@@ -13,7 +13,7 @@ fn a() -> SatProblemResult<Solution> {
         num_s: 2,
         num_o: 1,
     };
-    tetris::naive::solve(input)
+    tetris::naive2::solve(input)
 }
 
 fn b() -> SatProblemResult<Solution> {
@@ -26,7 +26,7 @@ fn b() -> SatProblemResult<Solution> {
         num_s: 4,
         num_o: 3,
     };
-    tetris::naive::solve(input)
+    tetris::naive2::solve(input)
 }
 
 fn c() -> SatProblemResult<Solution> {
@@ -39,12 +39,12 @@ fn c() -> SatProblemResult<Solution> {
         num_s: 10,
         num_o: 6,
     };
-    tetris::naive::solve(input)
+    tetris::naive2::solve(input)
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("tetris");
-    group.sample_size(10);
+    group.sample_size(20);
 
     group.bench_function("a", |bencher| bencher.iter(a));
     group.bench_function("b", |bencher| bencher.iter(b));

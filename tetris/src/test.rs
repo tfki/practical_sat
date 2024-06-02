@@ -2,11 +2,11 @@ mod single {
     mod sat {
         use solver::SatProblemResult;
 
-        use crate::{CellContent, Input, naive};
+        use crate::{CellContent, Input, naive2};
 
         #[test]
         pub fn i() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 1,
                 height: 4,
                 num_i: 1,
@@ -32,7 +32,7 @@ mod single {
 
         #[test]
         pub fn t() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 3,
                 height: 2,
                 num_i: 0,
@@ -60,7 +60,7 @@ mod single {
 
         #[test]
         pub fn l() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 3,
                 height: 2,
                 num_i: 0,
@@ -88,7 +88,7 @@ mod single {
 
         #[test]
         pub fn s() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 3,
                 height: 2,
                 num_i: 0,
@@ -116,7 +116,7 @@ mod single {
 
         #[test]
         pub fn o() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 2,
                 height: 2,
                 num_i: 0,
@@ -144,11 +144,11 @@ mod single {
     mod unsat {
         use solver::SatProblemResult;
 
-        use crate::{Input, naive};
+        use crate::{Input, naive2};
 
         #[test]
         pub fn i() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 1,
                 height: 3,
                 num_i: 1,
@@ -164,7 +164,7 @@ mod single {
 
         #[test]
         pub fn t() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 2,
                 height: 2,
                 num_i: 0,
@@ -180,7 +180,7 @@ mod single {
 
         #[test]
         pub fn l() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 2,
                 height: 2,
                 num_i: 0,
@@ -196,7 +196,7 @@ mod single {
 
         #[test]
         pub fn s() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 2,
                 height: 2,
                 num_i: 0,
@@ -212,7 +212,7 @@ mod single {
 
         #[test]
         pub fn o() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 1,
                 height: 2,
                 num_i: 0,
@@ -233,11 +233,11 @@ mod pairs {
         mod sat {
             use solver::SatProblemResult;
 
-            use crate::{CellContent, Input, naive};
+            use crate::{CellContent, Input, naive2};
 
             #[test]
             pub fn s() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 5,
                     height: 2,
                     num_i: 0,
@@ -270,7 +270,7 @@ mod pairs {
 
             #[test]
             pub fn i_horizontal() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 2,
                     height: 4,
                     num_i: 2,
@@ -303,7 +303,7 @@ mod pairs {
 
             #[test]
             pub fn i_vertical() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 1,
                     height: 8,
                     num_i: 2,
@@ -333,7 +333,7 @@ mod pairs {
 
             #[test]
             pub fn o_horizontal() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 2,
                     height: 4,
                     num_i: 0,
@@ -366,7 +366,7 @@ mod pairs {
 
             #[test]
             pub fn o_vertical() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 4,
                     height: 2,
                     num_i: 0,
@@ -397,7 +397,7 @@ mod pairs {
 
             #[test]
             pub fn l() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 4,
                     height: 3,
                     num_i: 0,
@@ -433,7 +433,7 @@ mod pairs {
 
             #[test]
             pub fn t() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 5,
                     height: 3,
                     num_i: 0,
@@ -493,11 +493,11 @@ mod pairs {
         mod unsat {
             use solver::SatProblemResult;
 
-            use crate::{Input, naive};
+            use crate::{Input, naive2};
 
             #[test]
             pub fn s1() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 4,
                     height: 2,
                     num_i: 0,
@@ -513,7 +513,7 @@ mod pairs {
 
             #[test]
             pub fn s2() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 3,
                     height: 3,
                     num_i: 0,
@@ -529,7 +529,7 @@ mod pairs {
 
             #[test]
             pub fn i1() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 2,
                     height: 3,
                     num_i: 2,
@@ -545,7 +545,7 @@ mod pairs {
 
             #[test]
             pub fn i2() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 1,
                     height: 4,
                     num_i: 2,
@@ -561,7 +561,7 @@ mod pairs {
 
             #[test]
             pub fn o1() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 2,
                     height: 3,
                     num_i: 0,
@@ -577,7 +577,7 @@ mod pairs {
 
             #[test]
             pub fn o2() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 1,
                     height: 4,
                     num_i: 0,
@@ -593,7 +593,7 @@ mod pairs {
 
             #[test]
             pub fn l1() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 3,
                     height: 3,
                     num_i: 0,
@@ -609,7 +609,7 @@ mod pairs {
 
             #[test]
             pub fn l2() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 4,
                     height: 2,
                     num_i: 0,
@@ -625,7 +625,7 @@ mod pairs {
 
             #[test]
             pub fn t1() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 4,
                     height: 3,
                     num_i: 0,
@@ -641,7 +641,7 @@ mod pairs {
 
             #[test]
             pub fn t2() {
-                let solution = naive::solve(Input {
+                let solution = naive2::solve(Input {
                     width: 5,
                     height: 2,
                     num_i: 0,
@@ -660,11 +660,11 @@ mod pairs {
     mod mixed {
         use solver::SatProblemResult;
 
-        use crate::{CellContent, Input, naive};
+        use crate::{CellContent, Input, naive2};
 
         #[test]
         pub fn s_and_t() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 5,
                 height: 2,
                 num_i: 0,
@@ -697,7 +697,7 @@ mod pairs {
 
         #[test]
         pub fn l_and_t() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 3,
                 height: 3,
                 num_i: 0,
@@ -730,7 +730,7 @@ mod pairs {
 
         #[test]
         pub fn l_and_s() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 4,
                 height: 3,
                 num_i: 0,
@@ -766,7 +766,7 @@ mod pairs {
 
         #[test]
         pub fn l_and_o() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 3,
                 height: 3,
                 num_i: 0,
@@ -799,10 +799,10 @@ mod pairs {
 
         #[test]
         pub fn t_and_i() {
-            let solution = naive::solve(Input {
+            let solution = naive2::solve(Input {
                 width: 3,
                 height: 5,
-                num_i: 1,
+                num_i: 2,
                 num_t: 1,
                 num_l: 0,
                 num_s: 0,
@@ -822,19 +822,19 @@ mod pairs {
 
                 assert!(matches!(solution.grid[0][1], Some(CellContent::I)));
                 assert!(matches!(solution.grid[1][1], Some(CellContent::T)));
-                assert!(matches!(solution.grid[2][1], None));
+                assert!(matches!(solution.grid[2][1], Some(CellContent::I)));
 
                 assert!(matches!(solution.grid[0][2], Some(CellContent::I)));
                 assert!(matches!(solution.grid[1][2], None));
-                assert!(matches!(solution.grid[2][2], None));
+                assert!(matches!(solution.grid[2][2], Some(CellContent::I)));
 
                 assert!(matches!(solution.grid[0][3], Some(CellContent::I)));
                 assert!(matches!(solution.grid[1][3], None));
-                assert!(matches!(solution.grid[2][3], None));
+                assert!(matches!(solution.grid[2][3], Some(CellContent::I)));
 
                 assert!(matches!(solution.grid[0][4], Some(CellContent::I)));
                 assert!(matches!(solution.grid[1][4], None));
-                assert!(matches!(solution.grid[2][4], None));
+                assert!(matches!(solution.grid[2][4], Some(CellContent::I)));
             }
         }
     }
@@ -843,11 +843,11 @@ mod pairs {
 mod complex {
     use solver::SatProblemResult;
 
-    use crate::{CellContent, Input, naive};
+    use crate::{CellContent, Input, naive2};
 
     #[test]
     pub fn exercise_sheet_example1() {
-        let solution = naive::solve(Input {
+        let solution = naive2::solve(Input {
             height: 5,
             width: 8,
             num_i: 1,
@@ -914,7 +914,7 @@ mod complex {
 
     #[test]
     pub fn exercise_sheet_example2() {
-        let solution = naive::solve(Input {
+        let solution = naive2::solve(Input {
             height: 5,
             width: 5,
             num_i: 2,
