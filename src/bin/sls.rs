@@ -19,8 +19,8 @@ fn main() {
             for (var, value) in assignment {
                 let string = format!(" {}{}", if value { "" } else { "-" }, var.id);
 
-                if line_length + string.len() > 4096 {
-                    println!();
+                if line_length + string.len() + 2 > 4096 {
+                    println!(" 0");
                     print!("v");
                     line_length = 1;
                 }
