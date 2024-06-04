@@ -9,8 +9,10 @@ fn main() {
     let cnf = Cnf::from_dimacs(path);
 
     match solve(cnf, Strategy::WalkSat, None) {
-        None => println!("no assignment found"),
+        None => println!("s UNKNOWN"),
         Some(assignment) => {
+            println!("s SATISFIABLE");
+
             let mut line_length = 1_usize;
             print!("v");
 

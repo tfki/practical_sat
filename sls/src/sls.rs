@@ -1,3 +1,4 @@
+use std::time::SystemTime;
 use solver::timer::Timer;
 
 use crate::assignment::Assignment;

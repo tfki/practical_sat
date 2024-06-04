@@ -13,6 +13,7 @@ sudoku = { path = "sudoku" }
 coloring = { path = "coloring" }
 solver = { path = "solver" }
 tetris = { path = "tetris" }
+sls = { path = "sls" }
 
 regex = "1.10.4"
 gcd = "2.3.0"
