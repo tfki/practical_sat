@@ -6,97 +6,84 @@ pub struct Coord {
     pub y: usize,
 }
 
+pub fn all_coords(dimens: usize, hidoku: &Hidoku) -> Vec<Coord> {
+    (0..dimens)
+        .flat_map(|x|
+            (0..dimens)
+                .map(move |y| Coord { x, y }))
+        .filter(|coord| hidoku.get(coord.x, coord.y).is_none())
+        .collect()
+}
+
 pub fn get_possible_coords(hidoku: &Hidoku) -> Option<Vec<(u32, Vec<Coord>)>> {
     let dimens = hidoku.dimens();
     let dimens_sq = hidoku.dimens() * hidoku.dimens();
 
-    let mut values_with_known_coords = Vec::<(u32, Vec<Coord>)>::new();
+    let mut value_coords = vec![all_coords(dimens, hidoku); dimens_sq];
+    let mut value_coord_set = vec![false; dimens_sq];
 
     for x in 0..dimens {
         for y in 0..dimens {
             if let Some(value) = hidoku.get(x, y) {
-                values_with_known_coords.push((value, vec![Coord { x, y }]));
+                value_coords[value as usize - 1] = vec![Coord { x, y }];
+                value_coord_set[value as usize - 1] = true;
             }
         }
     }
 
-    values_with_known_coords.sort_by_key(|(number, _)| *number);
-
-    // trivial rejects
-    for i in 0..(values_with_known_coords.len() - 1) {
-        let j = i + 1;
-
-        let (a_num, a_coords) = &values_with_known_coords[i];
-        let (b_num, b_coords) = &values_with_known_coords[j];
-
-        // if a_num and b_num are neighbors, their fields must be neighbors too
-        if (*a_num as i32 - *b_num as i32).abs() == 1 &&
-            !a_coords.first().unwrap().is_neighbor_of(b_coords.first().unwrap()) {
-            return None;
-        }
-    }
-
-    let mut i = 0;
+    // left to right
+    let mut iter_mut = value_coords.iter_mut().peekable();
+    let mut value = 1;
     loop {
-        let j = i + 1;
-        if j == values_with_known_coords.len() {
-            break;
-        }
+        if let Some(current) = iter_mut.next() {
+            if let Some(next) = iter_mut.peek_mut() {
+                // !value_coord_set[next] !!!
+                if !value_coord_set[value] {
+                    let new_next = intersection(next,
+                                                &current.iter()
+                                                    .flat_map(|coord| coord.neighbors_clipped(dimens))
+                                                    .filter(|coord| hidoku.get(coord.x, coord.y).is_none())
+                                                    .collect::<Vec<Coord>>());
 
-        let (a_num, a_coords) = &values_with_known_coords[i];
-        let (b_num, b_coords) = &values_with_known_coords[j];
-
-        if (*a_num as i32 - *b_num as i32).abs() > 1 {
-            let mut current_a = *a_num;
-            let mut current_b = *b_num;
-
-            let mut current_a_coords = a_coords.clone();
-            let mut current_b_coords = b_coords.clone();
-
-            if current_b < current_a {
-                std::mem::swap(&mut current_a, &mut current_b);
-                std::mem::swap(&mut current_a_coords, &mut current_b_coords);
-            }
-
-            let mut turn = true;
-            while current_a != current_b {
-                if turn {
-                    current_a += 1;
-                    current_a_coords = bfs_one_step(current_a_coords, hidoku);
-                } else {
-                    current_b -= 1;
-                    current_b_coords = bfs_one_step(current_b_coords, hidoku);
+                    **next = new_next;
                 }
-                turn = !turn;
+            } else {
+                break;
             }
+        }
+        value += 1;
+    }
 
-            let intersection = intersection(&current_a_coords, &current_b_coords);
-            if intersection.is_empty() {
-                return None;
+    // right to left
+    value_coord_set.reverse();
+
+    let mut iter_mut = value_coords.iter_mut().rev().peekable();
+    let mut value = 1;
+    loop {
+        if let Some(current) = iter_mut.next() {
+            if let Some(next) = iter_mut.peek_mut() {
+                // !value_coord_set[next] !!!
+                if !value_coord_set[value] {
+                    let new_next = intersection(next,
+                                                &current.iter()
+                                                    .flat_map(|coord| coord.neighbors_clipped(dimens))
+                                                    .filter(|coord| hidoku.get(coord.x, coord.y).is_none())
+                                                    .collect::<Vec<Coord>>());
+
+                    **next = new_next;
+                }
+            } else {
+                break;
             }
-
-            values_with_known_coords.insert(j, (current_a, intersection));
-        } else {
-            i += 1;
         }
+        value += 1;
     }
 
-    while let Some((number, possible_coords)) = values_with_known_coords.first() {
-        if *number == 1 {
-            break;
-        } else {
-            values_with_known_coords.insert(0, (number - 1, bfs_one_step(possible_coords.clone(), hidoku)));
-        }
-    }
-    while let Some((number, possible_coords)) = values_with_known_coords.last() {
-        if *number == dimens_sq as u32 {
-            break;
-        } else {
-            values_with_known_coords.push((number + 1, bfs_one_step(possible_coords.clone(), hidoku)));
-        }
+    if value_coords.iter().any(|coords| coords.is_empty()) {
+        return None;
     }
 
-    Some(values_with_known_coords)
+    Some(value_coords.into_iter().enumerate().map(|(i, coords)| (i as u32 + 1, coords)).collect())
 }
 
 impl Coord {

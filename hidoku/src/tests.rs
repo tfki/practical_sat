@@ -13,7 +13,7 @@ macro_rules! gen_test {
 
             assert!(matches!(solution, SatProblemResult::Sat(_)));
             if let SatProblemResult::Sat(solution) = solution {
-                assert!(solution.is_solution_to(&hidoku));
+                assert!(solution.is_permutation_of(&hidoku));
             }
         }
     };
