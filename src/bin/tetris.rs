@@ -12,5 +12,5 @@ fn main() {
         num_l: args[6].parse().unwrap(),
         num_o: args[7].parse().unwrap(),
     };
-    println!("{:?}", tetris::naive2::solve(input));
+    println!("{}", tetris::naive2::gen_dimacs(input));
 }
