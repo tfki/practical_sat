@@ -1,0 +1,147 @@
+25.45, hardware verification
+25.45, cryptography
+25.45, planning
+25.45, bitvector
+25.45, miter
+23.68, tseitin
+21.05, scheduling
+17.37, software verification
+16.58, sgen
+16.05, pigeon hole
+15.00, diagnosis
+14.87, rbsat
+13.16, fdmus                            // minimally unsatisfiable formula, unsat core?
+12.72, quasigroup completion
+11.84, hgen
+11.64, subgraph isomorphism
+11.05, pebbling
+10.26, hardware bmc
+9.47, fpga routing
+8.81, clique coloring
+
+interessant?
+- pebbling, graph pebbling problem
+- sgen, sehr harte handcrafted probleme, see "Weakening Cardinality Constraints Creates Harder Satisfiability Benchmarks"
+
+what?
+- rbsat
+- hgen
+
+8.42, battleship
+8.25 : 5355 problems,
+8.16, mosoi 289
+7.76, cril misc
+7.50, random modularity
+7.37, rooks
+7.37, parity games
+7.24, termination analysis
+6.84, clique width
+6.71, prime factoring
+6.71, prime testing
+6.58, schur coloring
+6.31, bioinformatics
+6.18, auto correlation
+6.05, random csp
+6.05, graph coloring
+5.92, edge matching
+5.92, generic csp
+5.79, xor chain
+5.66, waerden
+5.26, popularity similarity
+5.26, puzzle
+5.26, stedman triples
+5.00, crafted cec
+4.74, random clustered
+4.47, phnf
+4.47, gray codes
+4.34, relativized pigeon hole
+4.08, graph isomorphism
+4.60, cellular automata
+3.82, matrix multiplication
+3.82, ordering principle
+3.68, argumentation
+3.55, hypertree decomposition
+3.55, dining philosophers
+3.55, fixed shape random
+3.29, petrinet concurrency
+3.16, tree decomposition
+3.42, 2d strip packing
+2.76, pythagorean triples
+3.03, polynomial multiplication
+2.10, minimal disagreement parity
+2.63, erdos discrepancy
+2.63, knights problem
+2.63, sorting networks
+2.50, grandtour puzzle
+3.95, cardinality constraints
+3.68, testpattern generation
+3.68, influence maximization
+3.42, minimal superpermutation
+1.71, hardware model checking
+2.24, clustered random
+1.71, bounded model checking
+3.68, core based generator
+1.71, ensemble computation
+3.95, purdom instances
+2.89, automata synchronization
+3.42, test configuration
+3.42, hamiltonian cycle
+4.47, modcircuits
+3.42, maxsat optimum
+3.42, mycielski graph
+1.58, spectrum repacking
+3.95, graph based
+3.68, even coloring
+2.89, long learned clauses
+3.42, baseball lineup
+2.63, relational dependencies
+3.68, dimacs sorter
+3.42, antibandwidth
+3.42, at least two sol
+2.63, mutilated chessboard
+4.21, coloring
+3.42, edit distance
+2.63, equivalence chain
+2.63, subset cardinality
+2.37, finite state machines
+2.89, sliding puzzle
+2.37, perfect matching
+2.37, circuit multiplier
+3.95, hidoku
+2.63, sum of 3 cubes
+2.89, tournament
+3.42, cover
+3.16, ktf
+3.16, genurq
+2.89, stone
+2.63, greentao
+2.63, software bmc
+2.37, rubikcube
+2.37, social golfer
+2.10, random mus
+2.10, random
+2.10, theorem proving
+2.10, linvrinv
+1.84, discrete logarithm
+1.84, ramseycube
+1.84, misc satex
+1.84, cnf miter
+1.58, alloy vpn models
+1.58, lam discrete geometry
+1.32, product configuration
+1.32, chessboard coloring
+1.32, fermat
+1.32, hanoi
+1.27, random hiddenmodel
+1.27, sgen balanced
+1.27, railway safety
+1.27, maximum constraint partition
+1.27, karatsuba multiplication
+1.27, 01 integer programming
+1.27, ramsey
+1.27, circuit minimization
+1.27, tensors
+1.27, design debugging
+1.27, ssp 0
+1.27, glassy gen
+1.27, philips
